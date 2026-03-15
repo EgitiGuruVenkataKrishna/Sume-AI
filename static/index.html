@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sume AI — Beat the ATS. Land the Interview.</title>
+    <meta name="description" content="Sume AI analyzes your resume against job descriptions, reveals why ATS filters reject you, and gives actionable fixes to land interviews.">
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+</head>
+<body>
+
+<!-- Particle Background -->
+<canvas id="particle-canvas"></canvas>
+
+<!-- Error Toast -->
+<div class="error-toast" id="errorToast">
+    <button class="error-toast-close" id="errorClose" aria-label="Close error">&times;</button>
+    <div class="error-toast-title">Analysis Error</div>
+    <div class="error-toast-message" id="errorMessage">Something went wrong.</div>
+</div>
+
+<!-- Main App -->
+<div class="app-container">
+
+    <!-- ── Hero ──────────────────────────────────────────────────────── -->
+    <header class="hero">
+        <div class="hero-badge">
+            <span class="dot"></span>
+            ATS Intelligence Engine
+        </div>
+        <h1 class="hero-title">
+            <span class="accent">Sume</span> AI
+        </h1>
+        <p class="hero-subtitle">
+            Stop guessing why your resume gets rejected.
+            <strong>Beat the ATS</strong> — see exactly what's missing and fix it in minutes.
+        </p>
+    </header>
+
+    <!-- ── Upload Form ───────────────────────────────────────────────── -->
+    <section class="glass-card" id="uploadCard">
+        <form id="analyzeForm" autocomplete="off">
+
+            <!-- Resume Upload -->
+            <div class="form-section">
+                <label class="form-label">
+                    <span class="label-icon">📄</span>
+                    Your Resume
+                </label>
+                <div class="drop-zone" id="dropZone" role="button" tabindex="0" aria-label="Click or drag to upload resume PDF">
+                    <div class="drop-zone-content">
+                        <span class="drop-zone-icon">⬆️</span>
+                        <p class="drop-zone-text"><strong>Drop your resume here</strong> or click to browse</p>
+                        <p class="drop-zone-hint">PDF only · Max 5 MB</p>
+                    </div>
+                </div>
+                <input type="file" id="resumeInput" class="file-input" accept=".pdf">
+                <div class="file-preview" id="filePreview">
+                    <span class="file-preview-icon">📎</span>
+                    <div class="file-preview-info">
+                        <div class="file-preview-name" id="fileName">—</div>
+                        <div class="file-preview-size" id="fileSize">—</div>
+                    </div>
+                    <button type="button" class="file-remove-btn" id="fileRemove" aria-label="Remove file">✕</button>
+                </div>
+            </div>
+
+            <!-- Job Description -->
+            <div class="form-section">
+                <label class="form-label" for="jobDesc">
+                    <span class="label-icon">💼</span>
+                    Job Description
+                </label>
+                <textarea
+                    id="jobDesc"
+                    class="job-textarea"
+                    placeholder="Paste the full job description here — the more detail, the better the analysis..."
+                    maxlength="5000"
+                    required
+                ></textarea>
+                <div class="char-count" id="charCount">0 / 5,000</div>
+            </div>
+
+            <!-- Submit -->
+            <button type="submit" class="analyze-btn" id="analyzeBtn">
+                <span id="btnIcon">⚡</span>
+                <span id="btnText">Analyze My Resume</span>
+            </button>
+        </form>
+    </section>
+
+    <!-- ── Loading State ─────────────────────────────────────────────── -->
+    <div class="loading-container" id="loadingState">
+        <div class="loading-spinner">
+            <div class="ring"></div>
+            <div class="ring"></div>
+            <div class="ring"></div>
+        </div>
+        <div class="loading-text">Analyzing your resume...</div>
+        <div class="loading-subtext" id="loadingSubtext">Scanning keywords and formatting</div>
+    </div>
+
+    <!-- ── Results Dashboard ─────────────────────────────────────────── -->
+    <section class="results-section" id="resultsSection">
+
+        <!-- Score Ring -->
+        <div class="score-hero glass-card">
+            <div class="score-ring-container">
+                <svg class="score-ring-svg" viewBox="0 0 160 160">
+                    <circle class="score-ring-bg" cx="80" cy="80" r="70"></circle>
+                    <circle class="score-ring-fill" id="scoreRingFill" cx="80" cy="80" r="70"></circle>
+                </svg>
+                <div class="score-value" id="scoreValue">
+                    <span id="scoreNumber">—</span><span class="score-max">/100</span>
+                </div>
+            </div>
+            <div class="score-label">ATS Compatibility Score</div>
+            <div class="score-summary" id="scoreSummary"></div>
+        </div>
+
+        <!-- Section Scores -->
+        <div class="section-scores" id="sectionScores"></div>
+
+        <!-- Missing Keywords -->
+        <div class="result-card" id="keywordsCard">
+            <div class="result-card-header">
+                <div class="result-card-icon keywords">🔑</div>
+                <div class="result-card-title">Missing Keywords</div>
+                <div class="result-card-count" id="keywordsCount">0</div>
+            </div>
+            <div class="keyword-chips" id="keywordsList"></div>
+        </div>
+
+        <!-- Strengths -->
+        <div class="result-card" id="strengthsCard">
+            <div class="result-card-header">
+                <div class="result-card-icon strengths">✅</div>
+                <div class="result-card-title">Strengths</div>
+                <div class="result-card-count" id="strengthsCount">0</div>
+            </div>
+            <ul class="result-list" id="strengthsList"></ul>
+        </div>
+
+        <!-- Improvements -->
+        <div class="result-card" id="improvementsCard">
+            <div class="result-card-header">
+                <div class="result-card-icon improvements">🔧</div>
+                <div class="result-card-title">Improvements</div>
+                <div class="result-card-count" id="improvementsCount">0</div>
+            </div>
+            <ul class="result-list" id="improvementsList"></ul>
+        </div>
+
+        <!-- ATS Issues -->
+        <div class="result-card" id="atsCard">
+            <div class="result-card-header">
+                <div class="result-card-icon ats">⚠️</div>
+                <div class="result-card-title">ATS Issues</div>
+                <div class="result-card-count" id="atsCount">0</div>
+            </div>
+            <ul class="result-list" id="atsList"></ul>
+        </div>
+
+        <!-- New Analysis Button -->
+        <div style="text-align: center;">
+            <button class="new-analysis-btn" id="newAnalysisBtn">
+                ← Analyze Another Resume
+            </button>
+        </div>
+    </section>
+
+    <!-- ── Footer ────────────────────────────────────────────────────── -->
+    <footer class="app-footer">
+        <p class="footer-text">
+            Built with precision by <span class="footer-brand">Sume AI</span> · Your ATS intelligence copilot
+        </p>
+    </footer>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     JAVASCRIPT
+     ══════════════════════════════════════════════════════════════════════════ -->
+<script>
+(function () {
+    'use strict';
+
+    // ── DOM References ──────────────────────────────────────────────────────
+    const $ = (sel) => document.querySelector(sel);
+    const $$ = (sel) => document.querySelectorAll(sel);
+
+    const dropZone = $('#dropZone');
+    const resumeInput = $('#resumeInput');
+    const filePreview = $('#filePreview');
+    const fileName = $('#fileName');
+    const fileSize = $('#fileSize');
+    const fileRemove = $('#fileRemove');
+    const jobDesc = $('#jobDesc');
+    const charCount = $('#charCount');
+    const analyzeForm = $('#analyzeForm');
+    const analyzeBtn = $('#analyzeBtn');
+    const btnIcon = $('#btnIcon');
+    const btnText = $('#btnText');
+    const uploadCard = $('#uploadCard');
+    const loadingState = $('#loadingState');
+    const loadingSubtext = $('#loadingSubtext');
+    const resultsSection = $('#resultsSection');
+    const errorToast = $('#errorToast');
+    const errorMessage = $('#errorMessage');
+    const errorClose = $('#errorClose');
+    const newAnalysisBtn = $('#newAnalysisBtn');
+
+    let selectedFile = null;
+
+    // ── Particle Background ─────────────────────────────────────────────────
+    function initParticles() {
+        const canvas = $('#particle-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let animId;
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 0.5;
+                this.speedX = (Math.random() - 0.5) * 0.3;
+                this.speedY = (Math.random() - 0.5) * 0.3;
+                this.opacity = Math.random() * 0.3 + 0.05;
+                this.hue = Math.random() > 0.7 ? 187 : 38; // cyan or amber
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
+                    this.reset();
+                }
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = `hsla(${this.hue}, 80%, 65%, ${this.opacity})`;
+                ctx.fill();
+            }
+        }
+
+        function init() {
+            resize();
+            const count = Math.min(Math.floor((canvas.width * canvas.height) / 12000), 100);
+            particles = [];
+            for (let i = 0; i < count; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            animId = requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', () => {
+            cancelAnimationFrame(animId);
+            init();
+            animate();
+        });
+
+        init();
+        animate();
+    }
+
+    // ── File Upload Handling ────────────────────────────────────────────────
+    function formatFileSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    }
+
+    function handleFile(file) {
+        if (!file) return;
+
+        if (!file.name.toLowerCase().endsWith('.pdf')) {
+            showError('Invalid File', 'Please upload a PDF file.');
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            showError('File Too Large', 'Maximum file size is 5 MB.');
+            return;
+        }
+
+        selectedFile = file;
+        fileName.textContent = file.name;
+        fileSize.textContent = formatFileSize(file.size);
+        filePreview.classList.add('visible');
+        dropZone.style.display = 'none';
+    }
+
+    function removeFile() {
+        selectedFile = null;
+        resumeInput.value = '';
+        filePreview.classList.remove('visible');
+        dropZone.style.display = 'block';
+    }
+
+    // Drop zone events
+    dropZone.addEventListener('click', () => resumeInput.click());
+    dropZone.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            resumeInput.click();
+        }
+    });
+
+    resumeInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+    fileRemove.addEventListener('click', removeFile);
+
+    // Drag and drop
+    ['dragenter', 'dragover'].forEach(event => {
+        dropZone.addEventListener(event, (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+    });
+
+    ['dragleave', 'drop'].forEach(event => {
+        dropZone.addEventListener(event, (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+        });
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        const file = e.dataTransfer.files[0];
+        handleFile(file);
+    });
+
+    // Prevent body drag
+    document.body.addEventListener('dragover', (e) => e.preventDefault());
+    document.body.addEventListener('drop', (e) => e.preventDefault());
+
+    // ── Character Count ─────────────────────────────────────────────────────
+    jobDesc.addEventListener('input', () => {
+        const len = jobDesc.value.length;
+        charCount.textContent = `${len.toLocaleString()} / 5,000`;
+        charCount.className = 'char-count' + (len > 4500 ? ' danger' : len > 4000 ? ' warning' : '');
+    });
+
+    // ── Error Toast ─────────────────────────────────────────────────────────
+    function showError(title, message) {
+        $('#errorToast .error-toast-title').textContent = title;
+        errorMessage.textContent = message;
+        errorToast.classList.add('visible');
+        setTimeout(() => errorToast.classList.remove('visible'), 6000);
+    }
+
+    errorClose.addEventListener('click', () => errorToast.classList.remove('visible'));
+
+    // ── Loading State ───────────────────────────────────────────────────────
+    const loadingMessages = [
+        'Scanning keywords and formatting',
+        'Comparing against job requirements',
+        'Detecting ATS compatibility issues',
+        'Calculating match score',
+        'Generating personalized suggestions',
+        'Almost there — finalizing analysis',
+    ];
+
+    let loadingInterval;
+
+    function startLoading() {
+        uploadCard.style.display = 'none';
+        loadingState.classList.add('visible');
+        resultsSection.classList.remove('visible');
+
+        let msgIndex = 0;
+        loadingSubtext.textContent = loadingMessages[0];
+        loadingInterval = setInterval(() => {
+            msgIndex = (msgIndex + 1) % loadingMessages.length;
+            loadingSubtext.style.opacity = 0;
+            setTimeout(() => {
+                loadingSubtext.textContent = loadingMessages[msgIndex];
+                loadingSubtext.style.opacity = 1;
+            }, 200);
+        }, 2500);
+    }
+
+    function stopLoading() {
+        clearInterval(loadingInterval);
+        loadingState.classList.remove('visible');
+    }
+
+    // ── Score Gauge Animation ───────────────────────────────────────────────
+    function animateScore(score) {
+        const circumference = 2 * Math.PI * 70; // r = 70
+        const offset = circumference - (score / 100) * circumference;
+        const ring = $('#scoreRingFill');
+
+        // Reset
+        ring.style.strokeDasharray = circumference;
+        ring.style.strokeDashoffset = circumference;
+
+        // Set color class (use setAttribute for SVG elements — className is read-only on SVG)
+        const scoreClass = score >= 75 ? 'score-high' : score >= 50 ? 'score-mid' : 'score-low';
+        ring.setAttribute('class', 'score-ring-fill ' + scoreClass);
+
+        // Animate after a tick
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                ring.style.strokeDashoffset = offset;
+            });
+        });
+
+        // Counter animation
+        const scoreNumber = $('#scoreNumber');
+        let current = 0;
+        const step = Math.ceil(score / 60);
+        const counter = setInterval(() => {
+            current += step;
+            if (current >= score) {
+                current = score;
+                clearInterval(counter);
+            }
+            scoreNumber.textContent = current;
+        }, 25);
+
+        // Color the number
+        if (score >= 75) scoreNumber.style.color = 'var(--accent-success)';
+        else if (score >= 50) scoreNumber.style.color = 'var(--accent-warm)';
+        else scoreNumber.style.color = 'var(--accent-danger)';
+    }
+
+    // ── Render Results ──────────────────────────────────────────────────────
+    function renderResults(data) {
+        stopLoading();
+
+        // Score
+        animateScore(data.overall_score);
+        $('#scoreSummary').textContent = data.summary || '';
+
+        // Section Scores
+        const sectionScores = $('#sectionScores');
+        sectionScores.innerHTML = '';
+        const sections = data.section_scores || {};
+        const sectionLabels = {
+            experience: { label: 'Experience', color: 'var(--accent-primary)' },
+            skills: { label: 'Skills', color: 'var(--accent-warm)' },
+            education: { label: 'Education', color: 'var(--accent-purple)' },
+            formatting: { label: 'Formatting', color: 'var(--accent-success)' },
+        };
+
+        let sectionDelay = 1;
+        Object.entries(sectionLabels).forEach(([key, meta]) => {
+            const val = sections[key] || 0;
+            const item = document.createElement('div');
+            item.className = `section-score-item stagger-${sectionDelay++}`;
+            item.innerHTML = `
+                <div class="section-score-label">${meta.label}</div>
+                <div class="section-score-bar">
+                    <div class="section-score-fill" id="bar-${key}" style="background:${meta.color};"></div>
+                </div>
+                <div class="section-score-value" style="color:${meta.color}">${val}/100</div>
+            `;
+            sectionScores.appendChild(item);
+
+            // Animate bar after render
+            setTimeout(() => {
+                const bar = document.getElementById(`bar-${key}`);
+                if (bar) bar.style.width = val + '%';
+            }, 400 + sectionDelay * 150);
+        });
+
+        // Missing Keywords
+        const keywordsList = $('#keywordsList');
+        keywordsList.innerHTML = '';
+        const keywords = data.missing_keywords || [];
+        $('#keywordsCount').textContent = keywords.length;
+
+        keywords.forEach((kw, i) => {
+            const chip = document.createElement('div');
+            chip.className = `keyword-chip stagger-${Math.min(i + 1, 10)}`;
+            const kwData = typeof kw === 'string' ? { keyword: kw, importance: '' } : kw;
+            chip.innerHTML = `
+                <span class="keyword-chip-name">${escapeHtml(kwData.keyword)}</span>
+                ${kwData.importance ? `<span class="keyword-chip-reason">${escapeHtml(kwData.importance)}</span>` : ''}
+            `;
+            keywordsList.appendChild(chip);
+        });
+
+        // Strengths
+        renderList($('#strengthsList'), data.strengths || [], '✓', 'var(--accent-success)');
+        $('#strengthsCount').textContent = (data.strengths || []).length;
+
+        // Improvements
+        renderList($('#improvementsList'), data.improvements || [], '→', 'var(--accent-warm)');
+        $('#improvementsCount').textContent = (data.improvements || []).length;
+
+        // ATS Issues
+        renderList($('#atsList'), data.ats_issues || [], '!', 'var(--accent-danger)');
+        $('#atsCount').textContent = (data.ats_issues || []).length;
+
+        // Show results
+        resultsSection.classList.add('visible');
+        resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function renderList(container, items, icon, color) {
+        container.innerHTML = '';
+        items.forEach((text, i) => {
+            const li = document.createElement('li');
+            li.className = `result-list-item stagger-${Math.min(i + 1, 10)}`;
+            li.innerHTML = `
+                <span class="result-list-icon" style="color:${color}">${icon}</span>
+                <span class="result-list-text">${escapeHtml(text)}</span>
+            `;
+            container.appendChild(li);
+        });
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    // ── Form Submission ─────────────────────────────────────────────────────
+    analyzeForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        if (!selectedFile) {
+            showError('No Resume', 'Please upload your resume PDF first.');
+            return;
+        }
+
+        const jd = jobDesc.value.trim();
+        if (jd.length < 50) {
+            showError('Job Description Too Short', 'Please paste the full job description (at least 50 characters).');
+            return;
+        }
+
+        // Disable button
+        analyzeBtn.disabled = true;
+        analyzeBtn.classList.add('loading');
+        btnIcon.textContent = '⏳';
+        btnText.textContent = 'Analyzing...';
+
+        startLoading();
+
+        try {
+            const formData = new FormData();
+            formData.append('resume', selectedFile);
+            formData.append('job_description', jd);
+
+            const response = await fetch('/analyze-resume', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const err = await response.json().catch(() => ({}));
+                throw new Error(err.detail || `Server error (${response.status})`);
+            }
+
+            const result = await response.json();
+            renderResults(result);
+
+        } catch (error) {
+            stopLoading();
+            uploadCard.style.display = 'block';
+            showError('Analysis Failed', error.message || 'An unexpected error occurred. Please try again.');
+        } finally {
+            analyzeBtn.disabled = false;
+            analyzeBtn.classList.remove('loading');
+            btnIcon.textContent = '⚡';
+            btnText.textContent = 'Analyze My Resume';
+        }
+    });
+
+    // ── New Analysis ────────────────────────────────────────────────────────
+    newAnalysisBtn.addEventListener('click', () => {
+        resultsSection.classList.remove('visible');
+        uploadCard.style.display = 'block';
+        removeFile();
+        jobDesc.value = '';
+        charCount.textContent = '0 / 5,000';
+        charCount.className = 'char-count';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // ── Initialize ──────────────────────────────────────────────────────────
+    initParticles();
+
+})();
+</script>
+
+</body>
+</html>
