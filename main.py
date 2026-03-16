@@ -17,7 +17,7 @@ import io
 import json
 import time
 import logging
-from groq import Groq
+from groq import AsyncGroq
 from dotenv import load_dotenv
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -103,7 +103,7 @@ async def add_security_headers(request: Request, call_next):
 
 # ── Groq Client ─────────────────────────────────────────────────────────────
 
-def get_groq_client() -> Groq:
+def get_groq_client() -> AsyncGroq:
     """Create a Groq client with the current API key."""
     load_dotenv(override=True)
     api_key = os.getenv("GROQ_API_KEY")
@@ -112,7 +112,7 @@ def get_groq_client() -> Groq:
             status_code=500,
             detail="GROQ_API_KEY is not set. Please add it to your .env file.",
         )
-    return Groq(api_key=api_key)
+    return AsyncGroq(api_key=api_key)
 
 
 
@@ -357,7 +357,7 @@ async def analyze_resume(
 
     try:
         client = get_groq_client()
-        response = client.chat.completions.create(
+        response = await client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=[
                 {
@@ -469,7 +469,7 @@ async def generate_cover_letter(
 
     try:
         client = get_groq_client()
-        response = client.chat.completions.create(
+        response = await client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=[
                 {
