@@ -49,9 +49,7 @@ from contextlib import asynccontextmanager
 
 @asynccontextmanager
 async def lifespan(app):
-    """Initialize database on startup."""
-    init_db()
-    logger.info("Database initialized")
+    """Startup events."""
     logger.info(f"Rate limit: {RATE_LIMIT}")
     yield
 
@@ -61,7 +59,7 @@ async def lifespan(app):
 app = FastAPI(
     title="Sume AI — Resume ATS Analyzer",
     description="Analyze resumes against job descriptions for ATS optimization",
-    version="2.0.0",
+    version="3.0.0",
     lifespan=lifespan,
 )
 

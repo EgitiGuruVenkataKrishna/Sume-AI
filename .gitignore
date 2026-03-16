@@ -34,3 +34,6 @@ uploads/
 
 # Docker
 *.log
+
+.vercel
+.env*.local
