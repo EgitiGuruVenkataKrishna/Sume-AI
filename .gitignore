@@ -29,5 +29,8 @@ Thumbs.db
 # Uploads
 uploads/
 
+# Database
+*.db
+
 # Docker
 *.log

@@ -1,0 +1,25 @@
+{
+    "name": "Sume AI — Resume ATS Analyzer",
+    "short_name": "Sume AI",
+    "description": "Beat the ATS. Analyze your resume against job descriptions and get actionable fixes.",
+    "start_url": "/",
+    "display": "standalone",
+    "orientation": "portrait-primary",
+    "background_color": "#070b14",
+    "theme_color": "#070b14",
+    "categories": ["productivity", "utilities"],
+    "icons": [
+        {
+            "src": "/static/icons/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/static/icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}

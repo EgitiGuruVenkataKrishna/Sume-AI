@@ -2,9 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Sume AI — Beat the ATS. Land the Interview.</title>
     <meta name="description" content="Sume AI analyzes your resume against job descriptions, reveals why ATS filters reject you, and gives actionable fixes to land interviews.">
+
+    <!-- PWA -->
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#070b14">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Sume AI">
+    <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+
     <link rel="stylesheet" href="/static/styles.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
 </head>
@@ -18,6 +27,16 @@
     <button class="error-toast-close" id="errorClose" aria-label="Close error">&times;</button>
     <div class="error-toast-title">Analysis Error</div>
     <div class="error-toast-message" id="errorMessage">Something went wrong.</div>
+</div>
+
+<!-- PWA Install Banner -->
+<div class="pwa-install-banner" id="pwaInstallBanner">
+    <div class="pwa-install-text">
+        <div class="pwa-install-title">Install Sume AI</div>
+        <div class="pwa-install-desc">Add to home screen for quick access</div>
+    </div>
+    <button class="pwa-install-btn" id="pwaInstallBtn">Install</button>
+    <button class="pwa-install-close" id="pwaInstallClose" aria-label="Close">&times;</button>
 </div>
 
 <!-- Main App -->
@@ -38,6 +57,8 @@
         </p>
     </header>
 
+
+
     <!-- ── Upload Form ───────────────────────────────────────────────── -->
     <section class="glass-card" id="uploadCard">
         <form id="analyzeForm" autocomplete="off">
@@ -52,10 +73,10 @@
                     <div class="drop-zone-content">
                         <span class="drop-zone-icon">⬆️</span>
                         <p class="drop-zone-text"><strong>Drop your resume here</strong> or click to browse</p>
-                        <p class="drop-zone-hint">PDF only · Max 5 MB</p>
+                        <p class="drop-zone-hint">PDF or DOCX · Max 5 MB</p>
                     </div>
                 </div>
-                <input type="file" id="resumeInput" class="file-input" accept=".pdf">
+                <input type="file" id="resumeInput" class="file-input" accept=".pdf,.docx">
                 <div class="file-preview" id="filePreview">
                     <span class="file-preview-icon">📎</span>
                     <div class="file-preview-info">
@@ -122,6 +143,25 @@
         <!-- Section Scores -->
         <div class="section-scores" id="sectionScores"></div>
 
+        <!-- ATS Simulation Panel -->
+        <div class="result-card" id="atsSimCard">
+            <div class="result-card-header">
+                <div class="result-card-icon ats-sim">🤖</div>
+                <div class="result-card-title">What the ATS Robot Sees</div>
+            </div>
+            <div class="ats-sim-list" id="atsSimList"></div>
+        </div>
+
+        <!-- Fix It For Me Rewrites -->
+        <div class="result-card" id="rewritesCard">
+            <div class="result-card-header">
+                <div class="result-card-icon rewrites">✨</div>
+                <div class="result-card-title">Fix It For Me</div>
+                <div class="result-card-count" id="rewritesCount">0</div>
+            </div>
+            <div class="rewrites-list" id="rewritesList"></div>
+        </div>
+
         <!-- Missing Keywords -->
         <div class="result-card" id="keywordsCard">
             <div class="result-card-header">
@@ -162,13 +202,44 @@
             <ul class="result-list" id="atsList"></ul>
         </div>
 
-        <!-- New Analysis Button -->
-        <div style="text-align: center;">
+        <!-- Action Buttons -->
+        <div class="results-actions">
+            <button class="cover-letter-btn" id="coverLetterBtn">
+                ✉️ Generate Cover Letter
+            </button>
             <button class="new-analysis-btn" id="newAnalysisBtn">
                 ← Analyze Another Resume
             </button>
         </div>
     </section>
+
+    <!-- Cover Letter Modal -->
+    <div class="modal-overlay" id="coverLetterModal">
+        <div class="modal-content glass-card">
+            <div class="modal-header">
+                <h2 class="modal-title">✉️ Your Tailored Cover Letter</h2>
+                <button class="modal-close" id="coverLetterClose" aria-label="Close">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="cover-letter-text" id="coverLetterText"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn copy" id="coverLetterCopy">📋 Copy to Clipboard</button>
+                <button class="modal-btn download" id="coverLetterDownload">⬇️ Download .txt</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cover Letter Loading -->
+    <div class="cover-letter-loading" id="coverLetterLoading">
+        <div class="loading-spinner">
+            <div class="ring"></div>
+            <div class="ring"></div>
+            <div class="ring"></div>
+        </div>
+        <div class="loading-text">Crafting your cover letter...</div>
+        <div class="loading-subtext">Tailoring to the job description</div>
+    </div>
 
     <!-- ── Footer ────────────────────────────────────────────────────── -->
     <footer class="app-footer">
@@ -209,8 +280,23 @@
     const errorMessage = $('#errorMessage');
     const errorClose = $('#errorClose');
     const newAnalysisBtn = $('#newAnalysisBtn');
+    
+    // New Feature DOM References
+    const atsSimList = $('#atsSimList');
+    const rewritesList = $('#rewritesList');
+    const rewritesCount = $('#rewritesCount');
+    const rewritesCard = $('#rewritesCard');
+    const coverLetterBtn = $('#coverLetterBtn');
+    const coverLetterModal = $('#coverLetterModal');
+    const coverLetterClose = $('#coverLetterClose');
+    const coverLetterText = $('#coverLetterText');
+    const coverLetterCopy = $('#coverLetterCopy');
+    const coverLetterDownload = $('#coverLetterDownload');
+    const coverLetterLoading = $('#coverLetterLoading');
 
     let selectedFile = null;
+    let lastJobDescription = "";
+    let lastAnalysisId = null;
 
     // ── Particle Background ─────────────────────────────────────────────────
     function initParticles() {
@@ -225,9 +311,7 @@
         }
 
         class Particle {
-            constructor() {
-                this.reset();
-            }
+            constructor() { this.reset(); }
             reset() {
                 this.x = Math.random() * canvas.width;
                 this.y = Math.random() * canvas.height;
@@ -235,14 +319,12 @@
                 this.speedX = (Math.random() - 0.5) * 0.3;
                 this.speedY = (Math.random() - 0.5) * 0.3;
                 this.opacity = Math.random() * 0.3 + 0.05;
-                this.hue = Math.random() > 0.7 ? 187 : 38; // cyan or amber
+                this.hue = Math.random() > 0.7 ? 187 : 38;
             }
             update() {
                 this.x += this.speedX;
                 this.y += this.speedY;
-                if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
-                    this.reset();
-                }
+                if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) this.reset();
             }
             draw() {
                 ctx.beginPath();
@@ -256,26 +338,16 @@
             resize();
             const count = Math.min(Math.floor((canvas.width * canvas.height) / 12000), 100);
             particles = [];
-            for (let i = 0; i < count; i++) {
-                particles.push(new Particle());
-            }
+            for (let i = 0; i < count; i++) particles.push(new Particle());
         }
 
         function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            particles.forEach(p => {
-                p.update();
-                p.draw();
-            });
+            particles.forEach(p => { p.update(); p.draw(); });
             animId = requestAnimationFrame(animate);
         }
 
-        window.addEventListener('resize', () => {
-            cancelAnimationFrame(animId);
-            init();
-            animate();
-        });
-
+        window.addEventListener('resize', () => { cancelAnimationFrame(animId); init(); animate(); });
         init();
         animate();
     }
@@ -289,17 +361,18 @@
 
     function handleFile(file) {
         if (!file) return;
-
-        if (!file.name.toLowerCase().endsWith('.pdf')) {
-            showError('Invalid File', 'Please upload a PDF file.');
-            return;
+        
+        const isPdf = file.name.toLowerCase().endsWith('.pdf');
+        const isDocx = file.name.toLowerCase().endsWith('.docx');
+        
+        if (!isPdf && !isDocx) { 
+            showError('Invalid File', 'Please upload a PDF or DOCX file.'); 
+            return; 
         }
-
-        if (file.size > 5 * 1024 * 1024) {
-            showError('File Too Large', 'Maximum file size is 5 MB.');
-            return;
+        if (file.size > 5 * 1024 * 1024) { 
+            showError('File Too Large', 'Maximum file size is 5 MB.'); 
+            return; 
         }
-
         selectedFile = file;
         fileName.textContent = file.name;
         fileSize.textContent = formatFileSize(file.size);
@@ -314,39 +387,14 @@
         dropZone.style.display = 'block';
     }
 
-    // Drop zone events
     dropZone.addEventListener('click', () => resumeInput.click());
-    dropZone.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            resumeInput.click();
-        }
-    });
-
+    dropZone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); resumeInput.click(); } });
     resumeInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
     fileRemove.addEventListener('click', removeFile);
 
-    // Drag and drop
-    ['dragenter', 'dragover'].forEach(event => {
-        dropZone.addEventListener(event, (e) => {
-            e.preventDefault();
-            dropZone.classList.add('drag-over');
-        });
-    });
-
-    ['dragleave', 'drop'].forEach(event => {
-        dropZone.addEventListener(event, (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('drag-over');
-        });
-    });
-
-    dropZone.addEventListener('drop', (e) => {
-        const file = e.dataTransfer.files[0];
-        handleFile(file);
-    });
-
-    // Prevent body drag
+    ['dragenter', 'dragover'].forEach(ev => dropZone.addEventListener(ev, (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); }));
+    ['dragleave', 'drop'].forEach(ev => dropZone.addEventListener(ev, (e) => { e.preventDefault(); dropZone.classList.remove('drag-over'); }));
+    dropZone.addEventListener('drop', (e) => handleFile(e.dataTransfer.files[0]));
     document.body.addEventListener('dragover', (e) => e.preventDefault());
     document.body.addEventListener('drop', (e) => e.preventDefault());
 
@@ -364,7 +412,6 @@
         errorToast.classList.add('visible');
         setTimeout(() => errorToast.classList.remove('visible'), 6000);
     }
-
     errorClose.addEventListener('click', () => errorToast.classList.remove('visible'));
 
     // ── Loading State ───────────────────────────────────────────────────────
@@ -376,23 +423,19 @@
         'Generating personalized suggestions',
         'Almost there — finalizing analysis',
     ];
-
     let loadingInterval;
 
     function startLoading() {
         uploadCard.style.display = 'none';
+        historySection.style.display = 'none';
         loadingState.classList.add('visible');
         resultsSection.classList.remove('visible');
-
         let msgIndex = 0;
         loadingSubtext.textContent = loadingMessages[0];
         loadingInterval = setInterval(() => {
             msgIndex = (msgIndex + 1) % loadingMessages.length;
             loadingSubtext.style.opacity = 0;
-            setTimeout(() => {
-                loadingSubtext.textContent = loadingMessages[msgIndex];
-                loadingSubtext.style.opacity = 1;
-            }, 200);
+            setTimeout(() => { loadingSubtext.textContent = loadingMessages[msgIndex]; loadingSubtext.style.opacity = 1; }, 200);
         }, 2500);
     }
 
@@ -403,39 +446,27 @@
 
     // ── Score Gauge Animation ───────────────────────────────────────────────
     function animateScore(score) {
-        const circumference = 2 * Math.PI * 70; // r = 70
+        const circumference = 2 * Math.PI * 70;
         const offset = circumference - (score / 100) * circumference;
         const ring = $('#scoreRingFill');
 
-        // Reset
         ring.style.strokeDasharray = circumference;
         ring.style.strokeDashoffset = circumference;
 
-        // Set color class (use setAttribute for SVG elements — className is read-only on SVG)
         const scoreClass = score >= 75 ? 'score-high' : score >= 50 ? 'score-mid' : 'score-low';
         ring.setAttribute('class', 'score-ring-fill ' + scoreClass);
 
-        // Animate after a tick
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                ring.style.strokeDashoffset = offset;
-            });
-        });
+        requestAnimationFrame(() => { requestAnimationFrame(() => { ring.style.strokeDashoffset = offset; }); });
 
-        // Counter animation
         const scoreNumber = $('#scoreNumber');
         let current = 0;
         const step = Math.ceil(score / 60);
         const counter = setInterval(() => {
             current += step;
-            if (current >= score) {
-                current = score;
-                clearInterval(counter);
-            }
+            if (current >= score) { current = score; clearInterval(counter); }
             scoreNumber.textContent = current;
         }, 25);
 
-        // Color the number
         if (score >= 75) scoreNumber.style.color = 'var(--accent-success)';
         else if (score >= 50) scoreNumber.style.color = 'var(--accent-warm)';
         else scoreNumber.style.color = 'var(--accent-danger)';
@@ -444,8 +475,6 @@
     // ── Render Results ──────────────────────────────────────────────────────
     function renderResults(data) {
         stopLoading();
-
-        // Score
         animateScore(data.overall_score);
         $('#scoreSummary').textContent = data.summary || '';
 
@@ -459,7 +488,6 @@
             education: { label: 'Education', color: 'var(--accent-purple)' },
             formatting: { label: 'Formatting', color: 'var(--accent-success)' },
         };
-
         let sectionDelay = 1;
         Object.entries(sectionLabels).forEach(([key, meta]) => {
             const val = sections[key] || 0;
@@ -473,12 +501,7 @@
                 <div class="section-score-value" style="color:${meta.color}">${val}/100</div>
             `;
             sectionScores.appendChild(item);
-
-            // Animate bar after render
-            setTimeout(() => {
-                const bar = document.getElementById(`bar-${key}`);
-                if (bar) bar.style.width = val + '%';
-            }, 400 + sectionDelay * 150);
+            setTimeout(() => { const bar = document.getElementById(`bar-${key}`); if (bar) bar.style.width = val + '%'; }, 400 + sectionDelay * 150);
         });
 
         // Missing Keywords
@@ -486,7 +509,6 @@
         keywordsList.innerHTML = '';
         const keywords = data.missing_keywords || [];
         $('#keywordsCount').textContent = keywords.length;
-
         keywords.forEach((kw, i) => {
             const chip = document.createElement('div');
             chip.className = `keyword-chip stagger-${Math.min(i + 1, 10)}`;
@@ -498,22 +520,69 @@
             keywordsList.appendChild(chip);
         });
 
-        // Strengths
+        // ATS Simulation
+        atsSimList.innerHTML = '';
+        const atsSims = data.ats_parsed_sections || [];
+        atsSims.forEach((item, i) => {
+            const el = document.createElement('div');
+            el.className = `ats-sim-item stagger-${Math.min(i + 1, 10)}`;
+            const icon = item.status === 'found' ? '✅' : item.status === 'missing' ? '❌' : '⚠️';
+            const colorClass = item.status === 'found' ? 'ats-success' : item.status === 'missing' ? 'ats-danger' : 'ats-warning';
+            el.innerHTML = `
+                <div class="ats-sim-header ${colorClass}">
+                    <span class="ats-sim-icon">${icon}</span>
+                    <span class="ats-sim-name">${escapeHtml(item.name)}</span>
+                    <span class="ats-sim-status">${escapeHtml(item.status.toUpperCase())}</span>
+                </div>
+                <div class="ats-sim-detail">${escapeHtml(item.detail)}</div>
+            `;
+            atsSimList.appendChild(el);
+        });
+
+        // Rewrites
+        rewritesList.innerHTML = '';
+        const rewrites = data.rewrites || [];
+        rewritesCount.textContent = rewrites.length;
+        if (rewrites.length === 0) {
+            rewritesCard.style.display = 'none';
+        } else {
+            rewritesCard.style.display = 'block';
+            rewrites.forEach((rw, i) => {
+                const card = document.createElement('div');
+                card.className = `rewrite-card stagger-${Math.min(i + 1, 10)}`;
+                card.innerHTML = `
+                    <div class="rewrite-diff">
+                        <div class="rewrite-original">
+                            <div class="rewrite-label">Original <span class="rewrite-icon">❌</span></div>
+                            <div class="rewrite-text"><s>${escapeHtml(rw.original)}</s></div>
+                        </div>
+                        <div class="rewrite-improved">
+                            <div class="rewrite-label">Improved <span class="rewrite-icon">✅</span></div>
+                            <div class="rewrite-text" id="rewrite-text-${i}">${escapeHtml(rw.rewritten)}</div>
+                            <button class="rewrite-copy-btn" onclick="navigator.clipboard.writeText(document.getElementById('rewrite-text-${i}').textContent); this.innerHTML='Copied! ✓'; setTimeout(() => this.innerHTML='Copy', 2000)">Copy</button>
+                        </div>
+                    </div>
+                    <div class="rewrite-why">💡 <strong>Why:</strong> ${escapeHtml(rw.why)}</div>
+                `;
+                rewritesList.appendChild(card);
+            });
+        }
+
         renderList($('#strengthsList'), data.strengths || [], '✓', 'var(--accent-success)');
         $('#strengthsCount').textContent = (data.strengths || []).length;
-
-        // Improvements
         renderList($('#improvementsList'), data.improvements || [], '→', 'var(--accent-warm)');
         $('#improvementsCount').textContent = (data.improvements || []).length;
-
-        // ATS Issues
         renderList($('#atsList'), data.ats_issues || [], '!', 'var(--accent-danger)');
         $('#atsCount').textContent = (data.ats_issues || []).length;
 
-        // Show results
+        // Save last analysis data for cover letter
+        lastAnalysisId = data.analysis_id || null;
+
         resultsSection.classList.add('visible');
         resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+
+    // Modal Copy/Download Functions (must attach to window for inline onclicks if any, but we use event listeners mostly)
 
     function renderList(container, items, icon, color) {
         container.innerHTML = '';
@@ -534,39 +603,31 @@
         return div.innerHTML;
     }
 
+
+
     // ── Form Submission ─────────────────────────────────────────────────────
     analyzeForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-
-        if (!selectedFile) {
-            showError('No Resume', 'Please upload your resume PDF first.');
-            return;
-        }
-
+        if (!selectedFile) { showError('No Resume', 'Please upload your resume first.'); return; }
         const jd = jobDesc.value.trim();
-        if (jd.length < 50) {
-            showError('Job Description Too Short', 'Please paste the full job description (at least 50 characters).');
-            return;
-        }
+        if (jd.length < 50) { showError('Job Description Too Short', 'Please paste the full job description (at least 50 characters).'); return; }
 
-        // Disable button
+        lastJobDescription = jd; // Save for cover letter
         analyzeBtn.disabled = true;
         analyzeBtn.classList.add('loading');
         btnIcon.textContent = '⏳';
         btnText.textContent = 'Analyzing...';
-
         startLoading();
 
         try {
             const formData = new FormData();
             formData.append('resume', selectedFile);
             formData.append('job_description', jd);
+            const response = await fetch('/analyze-resume', { method: 'POST', body: formData });
 
-            const response = await fetch('/analyze-resume', {
-                method: 'POST',
-                body: formData,
-            });
-
+            if (response.status === 429) {
+                throw new Error('Rate limit exceeded. Please wait a while before trying again.');
+            }
             if (!response.ok) {
                 const err = await response.json().catch(() => ({}));
                 throw new Error(err.detail || `Server error (${response.status})`);
@@ -574,7 +635,6 @@
 
             const result = await response.json();
             renderResults(result);
-
         } catch (error) {
             stopLoading();
             uploadCard.style.display = 'block';
@@ -597,6 +657,107 @@
         charCount.className = 'char-count';
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
+
+    // ── Cover Letter ────────────────────────────────────────────────────────
+    coverLetterBtn.addEventListener('click', async () => {
+        if (!selectedFile || !lastJobDescription) {
+            showError('Missing Data', 'Please analyze a resume first.');
+            return;
+        }
+
+        coverLetterLoading.classList.add('visible');
+        coverLetterBtn.disabled = true;
+
+        try {
+            const formData = new FormData();
+            formData.append('resume', selectedFile);
+            formData.append('job_description', lastJobDescription);
+            
+            const response = await fetch('/generate-cover-letter', { method: 'POST', body: formData });
+            
+            if (response.status === 429) {
+                throw new Error('Rate limit exceeded. Please wait a while before trying again.');
+            }
+            if (!response.ok) {
+                const err = await response.json().catch(() => ({}));
+                throw new Error(err.detail || `Server error (${response.status})`);
+            }
+
+            const result = await response.json();
+            
+            // Format text with line breaks
+            coverLetterText.innerHTML = escapeHtml(result.cover_letter).replace(/\n/g, '<br>');
+            coverLetterModal.classList.add('visible');
+            
+        } catch (error) {
+            showError('Cover Letter Failed', error.message || 'An unexpected error occurred.');
+        } finally {
+            coverLetterLoading.classList.remove('visible');
+            coverLetterBtn.disabled = false;
+        }
+    });
+
+    coverLetterClose.addEventListener('click', () => {
+        coverLetterModal.classList.remove('visible');
+    });
+
+    coverLetterModal.addEventListener('click', (e) => {
+        if (e.target === coverLetterModal) coverLetterModal.classList.remove('visible');
+    });
+
+    coverLetterCopy.addEventListener('click', async () => {
+        const text = coverLetterText.innerText;
+        try {
+            await navigator.clipboard.writeText(text);
+            const originalText = coverLetterCopy.innerHTML;
+            coverLetterCopy.innerHTML = '✓ Copied!';
+            setTimeout(() => coverLetterCopy.innerHTML = originalText, 2000);
+        } catch (err) {
+            showError('Copy Failed', 'Could not copy to clipboard.');
+        }
+    });
+
+    coverLetterDownload.addEventListener('click', () => {
+        const text = coverLetterText.innerText;
+        const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `cover_letter_${selectedFile ? selectedFile.name.split('.')[0] : 'sume'}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    });
+
+    // ── PWA Install Prompt ──────────────────────────────────────────────────
+    let deferredPrompt = null;
+    const pwaInstallBanner = $('#pwaInstallBanner');
+    const pwaInstallBtn = $('#pwaInstallBtn');
+    const pwaInstallClose = $('#pwaInstallClose');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        setTimeout(() => pwaInstallBanner.classList.add('visible'), 3000);
+    });
+
+    pwaInstallBtn.addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const result = await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        pwaInstallBanner.classList.remove('visible');
+    });
+
+    pwaInstallClose.addEventListener('click', () => {
+        pwaInstallBanner.classList.remove('visible');
+    });
+
+    // ── Service Worker Registration ─────────────────────────────────────────
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/static/sw.js').catch(() => {});
+    }
 
     // ── Initialize ──────────────────────────────────────────────────────────
     initParticles();

@@ -2,18 +2,16 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# Install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application
-COPY main.py .
-COPY static/ static/
+COPY . .
 
-# Create upload directory
-RUN mkdir -p /app/uploads
+# Create volume mount point for SQLite persistence
+VOLUME ["/app/data"]
+ENV DATABASE_PATH=/app/data/sume_ai.db
+ENV ENVIRONMENT=production
 
 EXPOSE 8000
 
-# Production server with Gunicorn + Uvicorn workers
-CMD ["gunicorn", "main:app", "--workers", "2", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "--timeout", "120"]
+CMD ["gunicorn", "main:app", "-w", "2", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000"]
