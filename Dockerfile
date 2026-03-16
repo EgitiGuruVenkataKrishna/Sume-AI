@@ -7,9 +7,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Create volume mount point for SQLite persistence
-VOLUME ["/app/data"]
-ENV DATABASE_PATH=/app/data/sume_ai.db
 ENV ENVIRONMENT=production
 
 EXPOSE 8000
