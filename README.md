@@ -66,6 +66,21 @@ Sume AI solves this by acting as your personal ATS simulator. It reads your resu
 - Grounded strictly in your resume — no hallucinated achievements
 - Professional but personable tone with a strong opening hook and clear call to action
 
+### 🪄 Updated Resume Generator
+- Generates a **complete rewritten resume in Markdown** with all AI improvements applied
+- Missing keywords injected naturally, weak verbs replaced, achievements quantified
+- Preview in-app, copy as Markdown, or download as `.md` — ready to use instantly
+
+### 🔔 Bell Reveal Experience
+- After analysis, a stunning animated bell overlay appears with a golden glow
+- Live counter shows total resumes analyzed worldwide (social proof)
+- Tap the bell to trigger a ring animation and dramatically unveil your results
+
+### 💬 Feedback Form
+- Glassmorphism feedback card embedded in the footer
+- Optional name + message — completely privacy-first
+- Animated success state with a "💜 Thank You — Your Voice Matters" transition
+
 ### 🛡️ Production-Grade Infrastructure
 - **Rate limiting** — configurable per-IP (default: 10 analyses/hour) via `slowapi`
 - **Security headers** — `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Referrer-Policy` on every response
@@ -101,9 +116,11 @@ Sume AI solves this by acting as your personal ATS simulator. It reads your resu
 
 ```
 Sume-AI/
-├── main.py                # FastAPI application (v3.0.0)
-│                          #   ├─ /analyze-resume  (ATS analysis)
+├── main.py                # FastAPI application (v3.1.0)
+│                          #   ├─ /analyze-resume  (ATS analysis + updated resume)
 │                          #   ├─ /generate-cover-letter
+│                          #   ├─ /submit-feedback
+│                          #   ├─ /analytics/user-count
 │                          #   └─ /health
 ├── api/
 │   └── index.py           # Vercel serverless entry point (imports main.app)
@@ -131,7 +148,7 @@ Sume-AI/
 Health check endpoint.
 
 ```json
-{ "status": "healthy", "service": "sume-ai", "version": "3.0.0" }
+{ "status": "healthy", "service": "sume-ai", "version": "3.1.0" }
 ```
 
 ---
@@ -194,6 +211,37 @@ Analyze a resume against a job description.
 | `400` | Invalid file type, file too large, or JD too short/long |
 | `429` | Rate limit exceeded |
 | `500` | LLM or server error |
+
+---
+
+### `POST /submit-feedback`
+
+Submit user feedback. Rate-limited to 5 per hour per IP.
+
+**Request** — `multipart/form-data`
+
+| Field | Type | Required | Constraints |
+|---|---|---|---|
+| `name` | string | ❌ | Max 100 chars, defaults to "Anonymous" |
+| `message` | string | ✅ | 5–1000 characters |
+
+**Response** — `200 OK`
+
+```json
+{ "status": "success", "message": "Thank you for your feedback!" }
+```
+
+---
+
+### `GET /analytics/user-count`
+
+Returns the total number of resumes analyzed (for social proof counter).
+
+**Response** — `200 OK`
+
+```json
+{ "count": 1042 }
+```
 
 ---
 

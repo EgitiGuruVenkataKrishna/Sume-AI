@@ -93,10 +93,16 @@
 ```python
 class AnalysisResult(BaseModel):
     overall_score: int  # 0-100
-    missing_keywords: List[str]
+    summary: str
+    missing_keywords: List[KeywordDetail]
     strengths: List[str]
     improvements: List[str]
     ats_issues: List[str]
+    section_scores: dict
+    rewrites: List[RewriteSuggestion]
+    ats_parsed_sections: List[ATSParsedSection]
+    updated_resume_md: str
+    confidence: float
 ```
 
 ---

@@ -12,6 +12,8 @@ from pypdf import PdfReader
 from docx import Document as DocxDocument
 from pydantic import BaseModel, Field
 from typing import List
+from pathlib import Path
+import datetime
 import os
 import io
 import json
@@ -156,6 +158,9 @@ class AnalysisResult(BaseModel):
     ats_parsed_sections: List[ATSParsedSection] = Field(
         default=[], description="Simulated ATS section detection results"
     )
+    updated_resume_md: str = Field(
+        default="", description="Complete updated resume in Markdown format with all improvements applied"
+    )
     confidence: float = Field(default=0.5, ge=0.0, le=1.0, description="Model confidence")
 
 
@@ -281,6 +286,7 @@ Perform a thorough ATS compatibility analysis. Score the resume 0-100 based on:
             "detail": "2 projects detected"
         }}
     ],
+    "updated_resume_md": "<A COMPLETE, fully rewritten resume in clean Markdown format. Apply ALL the improvements, insert missing keywords naturally, fix ATS issues, use strong action verbs, and quantify achievements. Structure it with proper Markdown headers (# Name, ## Experience, ## Skills, ## Education, ## Projects, etc.). This should be a polished, ready-to-use resume that the candidate can copy directly.>",
     "confidence": <0.0-1.0>
 }}
 
@@ -290,6 +296,7 @@ Perform a thorough ATS compatibility analysis. Score the resume 0-100 based on:
 - For missing_keywords, only include keywords genuinely in the JD but absent from the resume
 - For "rewrites": provide 3-5 specific before→after rewrites. Copy the EXACT original text from the resume. The rewritten version must be specific, quantified where possible, and optimized for ATS keywords from the JD.
 - For "ats_parsed_sections": simulate how a real ATS (like Taleo, Workday, Greenhouse) would parse this resume. Report on these sections: Contact Info, Summary/Objective, Experience, Education, Skills, Certifications, Projects. Use status "found", "missing", or "warning".
+- For "updated_resume_md": Generate a COMPLETE updated resume in Markdown. Do NOT just list changes — write the ENTIRE resume with improvements applied. Use proper Markdown formatting with headers, bullet points, and bold text. Preserve all original information but enhance it with missing keywords, better action verbs, and quantified achievements.
 - Score honestly — a poor match should score below 40
 - Return ONLY valid JSON, no markdown formatting"""
 
@@ -367,7 +374,7 @@ async def analyze_resume(
                 {"role": "user", "content": prompt},
             ],
             temperature=0,
-            max_tokens=3000,
+            max_tokens=4500,
             response_format={"type": "json_object"},
         )
 
@@ -382,6 +389,9 @@ async def analyze_resume(
 
         result_dict = result.model_dump()
         logger.info(f"Analysis complete: score={result.overall_score}, confidence={result.confidence}")
+
+        # Increment global analysis counter
+        _increment_analysis_count()
 
         return JSONResponse(content=result_dict)
 
@@ -404,6 +414,71 @@ async def analyze_resume(
             status_code=500,
             detail=f"Analysis failed. Please try again. Error: {error_msg}",
         )
+
+
+# ── Analysis Counter Helpers ─────────────────────────────────────────────────
+
+COUNTER_FILE = Path(os.path.dirname(os.path.abspath(__file__))) / "analysis_count.json"
+FEEDBACK_FILE = Path(os.path.dirname(os.path.abspath(__file__))) / "feedback_log.json"
+
+
+def _read_analysis_count() -> int:
+    """Read the current analysis count from the counter file."""
+    try:
+        if COUNTER_FILE.exists():
+            data = json.loads(COUNTER_FILE.read_text())
+            return data.get("count", 1000)
+    except Exception:
+        pass
+    return 1000  # Seed value
+
+
+def _increment_analysis_count():
+    """Increment the analysis counter."""
+    try:
+        count = _read_analysis_count() + 1
+        COUNTER_FILE.write_text(json.dumps({"count": count}))
+    except Exception as e:
+        logger.warning(f"Could not update analysis counter: {e}")
+
+
+@app.get("/analytics/user-count")
+def get_user_count():
+    """Return the total number of resumes analyzed (for social proof counter)."""
+    return {"count": _read_analysis_count()}
+
+
+# ── Feedback Endpoint ────────────────────────────────────────────────────────
+
+
+@app.post("/submit-feedback")
+@limiter.limit("5/hour")
+async def submit_feedback(
+    request: Request,
+    name: str = Form(default="Anonymous"),
+    message: str = Form(..., min_length=5, max_length=1000),
+):
+    """Accept user feedback and log it to a local JSON file."""
+    try:
+        feedback_entry = {
+            "name": name.strip() or "Anonymous",
+            "message": message.strip(),
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        }
+        # Read existing feedback
+        entries = []
+        if FEEDBACK_FILE.exists():
+            try:
+                entries = json.loads(FEEDBACK_FILE.read_text())
+            except Exception:
+                entries = []
+        entries.append(feedback_entry)
+        FEEDBACK_FILE.write_text(json.dumps(entries, indent=2))
+        logger.info(f"Feedback received from: {feedback_entry['name']}")
+        return JSONResponse(content={"status": "success", "message": "Thank you for your feedback!"})
+    except Exception as e:
+        logger.error(f"Feedback error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to save feedback.")
 
 
 # ── Cover Letter Endpoint ────────────────────────────────────────────────────

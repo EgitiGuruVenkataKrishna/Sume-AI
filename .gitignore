@@ -37,3 +37,7 @@ uploads/
 
 .vercel
 .env*.local
+
+# Runtime data files
+analysis_count.json
+feedback_log.json

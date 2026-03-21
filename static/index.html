@@ -122,6 +122,19 @@
         <div class="loading-subtext" id="loadingSubtext">Scanning keywords and formatting</div>
     </div>
 
+    <!-- ── Bell Reveal Overlay ─────────────────────────────────────────── -->
+    <div class="bell-reveal" id="bellReveal">
+        <div class="bell-content">
+            <div class="bell-glow"></div>
+            <div class="bell-icon" id="bellIcon">🔔</div>
+            <div class="bell-label">✨ Your Analysis is Ready! ✨</div>
+            <div class="bell-instruction">Tap the bell to unveil your results</div>
+            <div class="bell-counter" id="bellCounter">
+                🌍 <span id="analysisCount">0</span> resumes analyzed worldwide
+            </div>
+        </div>
+    </div>
+
     <!-- ── Results Dashboard ─────────────────────────────────────────── -->
     <section class="results-section" id="resultsSection">
 
@@ -202,6 +215,20 @@
             <ul class="result-list" id="atsList"></ul>
         </div>
 
+        <!-- Updated Resume Card -->
+        <div class="result-card updated-resume-card" id="updatedResumeCard">
+            <div class="result-card-header">
+                <div class="result-card-icon resume-icon">🪄</div>
+                <div class="result-card-title">Your Transformed Resume</div>
+            </div>
+            <p class="updated-resume-desc">We've reimagined your resume with every improvement applied — keywords injected, verbs sharpened, formatting polished. Ready to copy.</p>
+            <div class="resume-actions">
+                <button class="resume-action-btn preview" id="previewResumeBtn">👁️ Preview</button>
+                <button class="resume-action-btn copy-md" id="copyResumeMdBtn">📋 Copy Markdown</button>
+                <button class="resume-action-btn download-md" id="downloadResumeMdBtn">⬇️ Download .md</button>
+            </div>
+        </div>
+
         <!-- Action Buttons -->
         <div class="results-actions">
             <button class="cover-letter-btn" id="coverLetterBtn">
@@ -241,8 +268,42 @@
         <div class="loading-subtext">Tailoring to the job description</div>
     </div>
 
-    <!-- ── Footer ────────────────────────────────────────────────────── -->
+    <!-- ── Updated Resume Modal ───────────────────────────────────────── -->
+    <div class="modal-overlay" id="resumeModal">
+        <div class="modal-content glass-card">
+            <div class="modal-header">
+                <h2 class="modal-title">🪄 Your Transformed Resume</h2>
+                <button class="modal-close" id="resumeModalClose" aria-label="Close">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="resume-preview-content" id="resumePreviewContent"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn copy" id="resumeModalCopy">📋 Copy Markdown</button>
+                <button class="modal-btn download" id="resumeModalDownload">⬇️ Download .md</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Footer with Feedback ────────────────────────────────────────── -->
     <footer class="app-footer">
+        <div class="feedback-section glass-card" id="feedbackSection">
+            <h3 class="feedback-title">💬 Share Your Thoughts</h3>
+            <p class="feedback-subtitle">Your feedback fuels our evolution — help us build something extraordinary.</p>
+            <form id="feedbackForm" class="feedback-form">
+                <input type="text" id="feedbackName" class="feedback-input" placeholder="Your name (optional)" maxlength="100">
+                <textarea id="feedbackMessage" class="feedback-textarea" placeholder="Tell us what you loved, what could be better, or any brilliant ideas you have..." maxlength="1000" required></textarea>
+                <button type="submit" class="feedback-submit-btn" id="feedbackSubmitBtn">
+                    <span id="feedbackBtnIcon">✨</span>
+                    <span id="feedbackBtnText">Send Feedback</span>
+                </button>
+            </form>
+            <div class="feedback-success" id="feedbackSuccess">
+                <div class="feedback-success-icon">💜</div>
+                <div class="feedback-success-title">Thank You — Your Voice Matters</div>
+                <div class="feedback-success-text">We read every message. Your insight makes Sume AI better for everyone.</div>
+            </div>
+        </div>
         <p class="footer-text">
             Built with precision by <span class="footer-brand">Sume AI</span> · Your ATS intelligence copilot
         </p>
@@ -294,9 +355,32 @@
     const coverLetterDownload = $('#coverLetterDownload');
     const coverLetterLoading = $('#coverLetterLoading');
 
+    // Bell Reveal DOM
+    const bellReveal = $('#bellReveal');
+    const bellIcon = $('#bellIcon');
+    const analysisCountEl = $('#analysisCount');
+
+    // Updated Resume DOM
+    const updatedResumeCard = $('#updatedResumeCard');
+    const previewResumeBtn = $('#previewResumeBtn');
+    const copyResumeMdBtn = $('#copyResumeMdBtn');
+    const downloadResumeMdBtn = $('#downloadResumeMdBtn');
+    const resumeModal = $('#resumeModal');
+    const resumeModalClose = $('#resumeModalClose');
+    const resumePreviewContent = $('#resumePreviewContent');
+    const resumeModalCopy = $('#resumeModalCopy');
+    const resumeModalDownload = $('#resumeModalDownload');
+
+    // Feedback DOM
+    const feedbackForm = $('#feedbackForm');
+    const feedbackSuccess = $('#feedbackSuccess');
+    const feedbackSubmitBtn = $('#feedbackSubmitBtn');
+
     let selectedFile = null;
     let lastJobDescription = "";
     let lastAnalysisId = null;
+    let lastUpdatedResumeMd = "";  // Store updated resume MD
+    let pendingResult = null;  // Store result for bell reveal
 
     // ── Particle Background ─────────────────────────────────────────────────
     function initParticles() {
@@ -577,6 +661,14 @@
         // Save last analysis data for cover letter
         lastAnalysisId = data.analysis_id || null;
 
+        // Updated Resume MD
+        lastUpdatedResumeMd = data.updated_resume_md || '';
+        if (lastUpdatedResumeMd) {
+            updatedResumeCard.style.display = 'block';
+        } else {
+            updatedResumeCard.style.display = 'none';
+        }
+
         resultsSection.classList.add('visible');
         resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -633,7 +725,9 @@
             }
 
             const result = await response.json();
-            renderResults(result);
+            pendingResult = result;  // Store for bell reveal
+            stopLoading();
+            showBellReveal();
         } catch (error) {
             stopLoading();
             uploadCard.style.display = 'block';
@@ -727,6 +821,126 @@
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+    });
+
+    // ── Bell Reveal ────────────────────────────────────────────────────────
+    function showBellReveal() {
+        bellReveal.classList.add('visible');
+        fetchAndAnimateCounter();
+    }
+
+    function fetchAndAnimateCounter() {
+        fetch('/analytics/user-count')
+            .then(r => r.json())
+            .then(data => {
+                const target = data.count || 1000;
+                animateCounter(target);
+            })
+            .catch(() => animateCounter(1000));
+    }
+
+    function animateCounter(target) {
+        let current = 0;
+        const step = Math.max(1, Math.floor(target / 80));
+        const interval = setInterval(() => {
+            current += step;
+            if (current >= target) { current = target; clearInterval(interval); }
+            analysisCountEl.textContent = current.toLocaleString();
+        }, 20);
+    }
+
+    bellIcon.addEventListener('click', () => {
+        bellIcon.classList.add('bell-ringing');
+        setTimeout(() => {
+            bellReveal.classList.add('fade-out');
+            setTimeout(() => {
+                bellReveal.classList.remove('visible', 'fade-out');
+                bellIcon.classList.remove('bell-ringing');
+                if (pendingResult) {
+                    renderResults(pendingResult);
+                    pendingResult = null;
+                }
+            }, 500);
+        }, 800);
+    });
+
+    // ── Updated Resume Modal ────────────────────────────────────────────────
+    function simpleMarkdownToHtml(md) {
+        return md
+            .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+            .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+            .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.+?)\*/g, '<em>$1</em>')
+            .replace(/^- (.+)$/gm, '<li>$1</li>')
+            .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+            .replace(/\n\n/g, '<br><br>')
+            .replace(/\n/g, '<br>');
+    }
+
+    previewResumeBtn.addEventListener('click', () => {
+        resumePreviewContent.innerHTML = simpleMarkdownToHtml(escapeHtml(lastUpdatedResumeMd));
+        resumeModal.classList.add('visible');
+    });
+
+    resumeModalClose.addEventListener('click', () => resumeModal.classList.remove('visible'));
+    resumeModal.addEventListener('click', (e) => { if (e.target === resumeModal) resumeModal.classList.remove('visible'); });
+
+    function copyResumeMd(e) {
+        const btn = e ? e.target.closest('button') : null;
+        navigator.clipboard.writeText(lastUpdatedResumeMd).then(() => {
+            if (btn) {
+                const orig = btn.innerHTML;
+                btn.innerHTML = '✓ Copied!';
+                setTimeout(() => btn.innerHTML = orig, 2000);
+            }
+        }).catch((err) => {
+            console.error(err);
+            showError('Copy Failed', 'Could not copy to clipboard. Ensure you are on a secure connection.');
+        });
+    }
+
+    function downloadResumeMd() {
+        const blob = new Blob([lastUpdatedResumeMd], { type: 'text/markdown;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `updated_resume_${selectedFile ? selectedFile.name.split('.')[0] : 'sume'}.md`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    copyResumeMdBtn.addEventListener('click', copyResumeMd);
+    downloadResumeMdBtn.addEventListener('click', downloadResumeMd);
+    resumeModalCopy.addEventListener('click', copyResumeMd);
+    resumeModalDownload.addEventListener('click', downloadResumeMd);
+
+    // ── Feedback Form ────────────────────────────────────────────────────
+    feedbackForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msg = $('#feedbackMessage').value.trim();
+        if (msg.length < 5) { showError('Too Short', 'Please write at least 5 characters.'); return; }
+
+        feedbackSubmitBtn.disabled = true;
+        $('#feedbackBtnText').textContent = 'Sending...';
+        $('#feedbackBtnIcon').textContent = '⏳';
+
+        try {
+            const fd = new FormData();
+            fd.append('name', $('#feedbackName').value.trim() || 'Anonymous');
+            fd.append('message', msg);
+            const resp = await fetch('/submit-feedback', { method: 'POST', body: fd });
+            if (!resp.ok) throw new Error('Server error');
+            feedbackForm.style.display = 'none';
+            feedbackSuccess.classList.add('visible');
+        } catch (err) {
+            showError('Feedback Failed', 'Could not send. Please try again later.');
+            feedbackSubmitBtn.disabled = false;
+            $('#feedbackBtnText').textContent = 'Send Feedback';
+            $('#feedbackBtnIcon').textContent = '✨';
+        }
     });
 
     // ── PWA Install Prompt ──────────────────────────────────────────────────
