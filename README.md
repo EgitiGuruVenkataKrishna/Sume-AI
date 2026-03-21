@@ -358,7 +358,9 @@ Set the `GROQ_API_KEY` environment variable in your Vercel project dashboard und
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `GROQ_API_KEY` | ✅ | — | Groq API key for LLM inference |
+| `GROQ_API_KEY` | ✅ | — | Primary Groq API key for LLM inference |
+| `GROQ_API_KEY_2` | ❌ | — | Secondary API key for automatic failover on rate limits |
+| `GROQ_API_KEY_3` | ❌ | — | Tertiary API key for automatic failover |
 | `ENVIRONMENT` | ❌ | `development` | Set to `production` for JSON logging |
 | `RATE_LIMIT` | ❌ | `10/hour` | slowapi rate limit string (e.g. `5/minute`) |
 | `ALLOWED_ORIGINS` | ❌ | `*` | Comma-separated CORS origins |

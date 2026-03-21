@@ -105,16 +105,44 @@ async def add_security_headers(request: Request, call_next):
 
 # ── Groq Client ─────────────────────────────────────────────────────────────
 
-def get_groq_client() -> AsyncGroq:
-    """Create a Groq client with the current API key."""
+def get_groq_keys() -> List[str]:
+    """Retrieve all available Groq API keys."""
     load_dotenv(override=True)
-    api_key = os.getenv("GROQ_API_KEY")
-    if not api_key:
+    keys = [
+        os.getenv("GROQ_API_KEY"),
+        os.getenv("GROQ_API_KEY_2"),
+        os.getenv("GROQ_API_KEY_3")
+    ]
+    # Filter out None and empty strings
+    valid_keys = [k.strip() for k in keys if k and k.strip()]
+    
+    if not valid_keys:
         raise HTTPException(
             status_code=500,
-            detail="GROQ_API_KEY is not set. Please add it to your .env file.",
+            detail="No GROQ_API_KEY is set. Please add it to your .env file.",
         )
-    return AsyncGroq(api_key=api_key)
+    return valid_keys
+
+
+async def call_groq_with_fallback(call_kwargs: dict):
+    """Attempt a Groq API chat completion with automatic key rotation on failure."""
+    keys = get_groq_keys()
+    
+    for attempt, key in enumerate(keys):
+        try:
+            client = AsyncGroq(api_key=key)
+            response = await client.chat.completions.create(**call_kwargs)
+            return response
+        except Exception as e:
+            key_name = "GROQ_API_KEY" if attempt == 0 else f"GROQ_API_KEY_{attempt + 1}"
+            logger.warning(f"Groq API call failed using {key_name} (Attempt {attempt+1}/{len(keys)}): {str(e)}")
+            
+    # If all keys failed
+    logger.error("All available Groq API keys failed.")
+    raise HTTPException(
+        status_code=500, 
+        detail="AI service is currently unavailable or rate limits exceeded. Please try again later."
+    )
 
 
 
@@ -363,20 +391,19 @@ async def analyze_resume(
     logger.info(f"Analyzing resume: {resume.filename} ({len(resume_text)} chars) vs JD ({len(job_description)} chars)")
 
     try:
-        client = get_groq_client()
-        response = await client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=[
+        response = await call_groq_with_fallback({
+            "model": "llama-3.1-8b-instant",
+            "messages": [
                 {
                     "role": "system",
                     "content": "You are an expert ATS resume analyst. Always respond with valid JSON only.",
                 },
                 {"role": "user", "content": prompt},
             ],
-            temperature=0,
-            max_tokens=4500,
-            response_format={"type": "json_object"},
-        )
+            "temperature": 0,
+            "max_tokens": 4500,
+            "response_format": {"type": "json_object"},
+        })
 
         raw_content = response.choices[0].message.content
 
@@ -543,19 +570,18 @@ async def generate_cover_letter(
     logger.info(f"Generating cover letter for: {resume.filename}")
 
     try:
-        client = get_groq_client()
-        response = await client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=[
+        response = await call_groq_with_fallback({
+            "model": "llama-3.1-8b-instant",
+            "messages": [
                 {
                     "role": "system",
                     "content": "You are a professional cover letter writer. Respond with only the cover letter text, nothing else.",
                 },
                 {"role": "user", "content": prompt},
             ],
-            temperature=0.7,
-            max_tokens=1500,
-        )
+            "temperature": 0.7,
+            "max_tokens": 1500,
+        })
 
         cover_letter = response.choices[0].message.content.strip()
         logger.info(f"Cover letter generated: {len(cover_letter)} chars")
