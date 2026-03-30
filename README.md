@@ -131,7 +131,7 @@ Frontend (Vercel)
 B.Tech CSE (AI/ML), VIT-AP
 
 * GitHub: https://github.com/EgitiGuruVenkataKrishna
-* LinkedIn: https://linkedin.com/in/your-link
+* LinkedIn: (https://www.linkedin.com/in/guru-venkata-krishna-egiti-46070a303/)
 
 ---
 
