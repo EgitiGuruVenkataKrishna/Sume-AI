@@ -2,7 +2,7 @@
 
 > **A production-grade, asynchronous AI system that simulates real-world ATS parser behaviors and delivers high-fidelity, actionable resume improvements.**
 
-🌐 **[Live Demo](https://sume-ai.vercel.app)** | 📸 **[Demo Screenshot (Placeholder)](E:\Sume-AI\Screenshot 2026-06-11 200604.png)**
+🌐 **[Live Demo](https://sume-ai.vercel.app)** | 📸 **[Demo Screenshot]("C:\Users\yegit\OneDrive\Pictures\Screenshot 2026-06-11 200604.png")**
 
 ---
 
