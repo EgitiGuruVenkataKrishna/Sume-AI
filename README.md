@@ -4,7 +4,7 @@
 
 🌐 [Live Demo](https://sume-ai.vercel.app) | 📸 Demo Screenshot:
 
-![Sume AI Demo Dashboard]("C:\Users\yegit\OneDrive\Pictures\Screenshot 2026-06-11 200604.png")
+![Sume AI Demo Dashboard](E:\Sume-AI\assets\demo_Image.png)
 
 ---
 
