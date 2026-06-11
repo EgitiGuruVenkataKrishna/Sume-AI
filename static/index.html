@@ -45,11 +45,22 @@
     <meta name="apple-mobile-web-app-title" content="Sume AI">
     <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link rel="stylesheet" href="/static/styles.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
 </head>
 <body>
 
+<!-- Live Wallpaper Background Blobs -->
+<div class="bg-blob blob-1"></div>
+<div class="bg-blob blob-2"></div>
+
+<!-- Background Cream Wave & Spark Animations -->
+<div class="wave-container">
+    <div class="cream-wave"></div>
+    <div class="spark-burst"></div>
+</div>
+ 
 <!-- Particle Background -->
 <canvas id="particle-canvas"></canvas>
 
@@ -75,16 +86,23 @@
 
     <!-- ── Hero ──────────────────────────────────────────────────────── -->
     <header class="hero">
-        <div class="hero-badge">
+        <div class="hero-badge" id="heroBadge">
             <span class="dot"></span>
-            ATS Intelligence Engine
+            <span id="heroBadgeText">ATS Intelligence Engine</span>
         </div>
         <h1 class="hero-title">
+            <div class="logo-icon-container">
+                <svg class="logo-svg-ring" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="40" stroke-dasharray="180 60" />
+                </svg>
+                <svg class="logo-svg-core" viewBox="0 0 100 100">
+                    <polygon points="50,15 90,80 10,80" />
+                </svg>
+            </div>
             <span class="accent">Sume</span> AI
         </h1>
         <p class="hero-subtitle">
-            Stop guessing why your resume gets rejected.
-            <strong>Beat the ATS</strong> — see exactly what's missing and fix it in minutes.
+            <span id="typingElement"></span><span class="typing-cursor">|</span>
         </p>
     </header>
 
@@ -127,7 +145,7 @@
                 <textarea
                     id="jobDesc"
                     class="job-textarea"
-                    placeholder="Paste the full job description here — the more detail, the better the analysis..."
+                    placeholder="Paste the target Job Description to compare alignment..."
                     maxlength="5000"
                     required
                 ></textarea>
@@ -142,6 +160,39 @@
         </form>
     </section>
 
+    <!-- ── Empty State Guide ── -->
+    <div class="empty-state-container" id="emptyStateGuide">
+        <div class="empty-state-graphic">
+            <svg class="empty-svg" width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="35" y="20" width="50" height="70" rx="8" fill="var(--bg-elevated)" stroke="var(--accent-primary)" stroke-width="2"/>
+                <path d="M45 40H75" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round"/>
+                <path d="M45 52H75" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round"/>
+                <path d="M45 64H60" stroke="var(--text-muted)" stroke-width="2" stroke-linecap="round"/>
+                <circle cx="85" cy="85" r="20" fill="var(--accent-warm)" stroke="var(--bg-deep)" stroke-width="3"/>
+                <path d="M78 85L83 90L92 80" stroke="var(--text-inverse)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <h3 class="empty-state-title">Let's Optimize Your Resume</h3>
+        <p class="empty-state-subtitle">Follow three simple steps to compare your resume against any job description and unlock ATS optimization insights.</p>
+        <div class="steps-grid">
+            <div class="step-card">
+                <div class="step-num">1</div>
+                <h4 class="step-title">Upload Resume</h4>
+                <p class="step-desc">Drop your PDF or DOCX file above. We support files up to 5 MB.</p>
+            </div>
+            <div class="step-card">
+                <div class="step-num">2</div>
+                <h4 class="step-title">Paste Job Info</h4>
+                <p class="step-desc">Enter the target job description to match your skills with precision.</p>
+            </div>
+            <div class="step-card">
+                <div class="step-num">3</div>
+                <h4 class="step-title">Get Insights</h4>
+                <p class="step-desc">Get instant scoring, keyword alignment, and a tailored cover letter.</p>
+            </div>
+        </div>
+    </div>
+
     <!-- ── Loading State ─────────────────────────────────────────────── -->
     <div class="loading-container" id="loadingState">
         <div class="loading-spinner">
@@ -149,114 +200,142 @@
             <div class="ring"></div>
             <div class="ring"></div>
         </div>
+        <div class="queue-progress-container">
+            <div class="queue-progress-bar"></div>
+        </div>
         <div class="loading-text">Analyzing your resume...</div>
         <div class="loading-subtext" id="loadingSubtext">Scanning keywords and formatting</div>
-    </div>
-
-    <!-- ── Bell Reveal Overlay ─────────────────────────────────────────── -->
-    <div class="bell-reveal" id="bellReveal">
-        <div class="bell-content">
-            <div class="bell-glow"></div>
-            <div class="bell-icon" id="bellIcon">🔔</div>
-            <div class="bell-label">✨ Your Analysis is Ready! ✨</div>
-            <div class="bell-instruction">Tap the bell to unveil your results</div>
-            <div class="bell-counter" id="bellCounter">
-                🌍 <span id="analysisCount">0</span> resumes analyzed worldwide
-            </div>
-        </div>
     </div>
 
     <!-- ── Results Dashboard ─────────────────────────────────────────── -->
     <section class="results-section" id="resultsSection">
 
-        <!-- Score Ring -->
+        <!-- Score Hero with Dual Rings & Download -->
         <div class="score-hero glass-card">
-            <div class="score-ring-container">
-                <svg class="score-ring-svg" viewBox="0 0 160 160">
-                    <circle class="score-ring-bg" cx="80" cy="80" r="70"></circle>
-                    <circle class="score-ring-fill" id="scoreRingFill" cx="80" cy="80" r="70"></circle>
-                </svg>
-                <div class="score-value" id="scoreValue">
-                    <span id="scoreNumber">—</span><span class="score-max">/100</span>
+            <div class="score-rings-container">
+                <!-- Overall Score Ring -->
+                <div class="score-ring-wrapper">
+                    <div class="score-ring-container">
+                        <svg class="score-ring-svg" viewBox="0 0 160 160">
+                            <circle class="score-ring-bg" cx="80" cy="80" r="70"></circle>
+                            <circle class="score-ring-fill" id="scoreRingFill" cx="80" cy="80" r="70"></circle>
+                        </svg>
+                        <div class="score-value" id="scoreValue">
+                            <span id="scoreNumber">—</span><span class="score-max">/100</span>
+                        </div>
+                    </div>
+                    <div class="score-label">ATS Compatibility Score</div>
+                </div>
+
+                <!-- Keyword Match Score Ring -->
+                <div class="score-ring-wrapper">
+                    <div class="score-ring-container">
+                        <svg class="score-ring-svg" viewBox="0 0 160 160">
+                            <circle class="score-ring-bg" cx="80" cy="80" r="70"></circle>
+                            <circle class="score-ring-fill" id="keywordRingFill" cx="80" cy="80" r="70"></circle>
+                        </svg>
+                        <div class="score-value" id="keywordScoreValue">
+                            <span id="keywordScoreNumber">—</span><span class="score-max">%</span>
+                        </div>
+                    </div>
+                    <div class="score-label">Keyword Match Rate</div>
                 </div>
             </div>
-            <div class="score-label">ATS Compatibility Score</div>
-            <div class="score-summary" id="scoreSummary"></div>
+            <div class="score-summary" id="scoreSummary" style="margin-top: var(--space-md);"></div>
+            <div class="download-results-wrapper">
+                <button type="button" class="download-results-btn" id="downloadResultsBtn">
+                    📥 Download ATS Feedback Report
+                </button>
+            </div>
         </div>
 
-        <!-- Section Scores -->
-        <div class="section-scores" id="sectionScores"></div>
+        <!-- Dashboard Grid Container -->
+        <div class="dashboard-grid">
+            <!-- Left Column: Metrics & Parser Simulation -->
+            <div class="dashboard-col-left">
+                <!-- Section Scores -->
+                <div class="section-scores-card glass-card">
+                    <h3 class="section-scores-title">Alignment Metrics</h3>
+                    <div class="section-scores" id="sectionScores"></div>
+                </div>
 
-        <!-- ATS Simulation Panel -->
-        <div class="result-card" id="atsSimCard">
-            <div class="result-card-header">
-                <div class="result-card-icon ats-sim">🤖</div>
-                <div class="result-card-title">What the ATS Robot Sees</div>
+                <!-- ATS Simulation Panel -->
+                <div class="result-card" id="atsSimCard">
+                    <div class="result-card-header">
+                        <div class="result-card-icon ats-sim">🤖</div>
+                        <div class="result-card-title">What the ATS Robot Sees</div>
+                    </div>
+                    <div class="ats-sim-list" id="atsSimList"></div>
+                </div>
+
+                <!-- Missing Keywords -->
+                <div class="result-card" id="keywordsCard">
+                    <div class="result-card-header">
+                        <div class="result-card-icon keywords">🔑</div>
+                        <div class="result-card-title">Missing Keywords</div>
+                        <div class="result-card-count" id="keywordsCount">0</div>
+                    </div>
+                    <div class="keyword-chips" id="keywordsList"></div>
+                </div>
             </div>
-            <div class="ats-sim-list" id="atsSimList"></div>
+
+            <!-- Right Column: Transformed Resume & Suggestions -->
+            <div class="dashboard-col-right">
+                <!-- Updated Resume Card -->
+                <div class="result-card updated-resume-card" id="updatedResumeCard">
+                    <div class="result-card-header">
+                        <div class="result-card-icon resume-icon">🪄</div>
+                        <div class="result-card-title">Your Transformed Resume</div>
+                    </div>
+                    <p class="updated-resume-desc">We've reimagined your resume with every improvement applied — keywords injected, verbs sharpened, formatting polished. Ready to preview and download.</p>
+                    <div class="resume-actions">
+                        <button class="resume-action-btn preview" id="previewResumeBtn">👁️ Preview</button>
+                        <button class="resume-action-btn download-md" id="downloadResumeMdBtn">⬇️ Download PDF</button>
+                    </div>
+                </div>
+
+                <!-- Fix It For Me Rewrites -->
+                <div class="result-card" id="rewritesCard">
+                    <div class="result-card-header">
+                        <div class="result-card-icon rewrites">✨</div>
+                        <div class="result-card-title">Fix It For Me</div>
+                        <div class="result-card-count" id="rewritesCount">0</div>
+                    </div>
+                    <div class="rewrites-list" id="rewritesList"></div>
+                </div>
+            </div>
         </div>
 
-        <!-- Fix It For Me Rewrites -->
-        <div class="result-card" id="rewritesCard">
-            <div class="result-card-header">
-                <div class="result-card-icon rewrites">✨</div>
-                <div class="result-card-title">Fix It For Me</div>
-                <div class="result-card-count" id="rewritesCount">0</div>
+        <!-- Bottom Row (Full Width or Flex): Strengths, Improvements, ATS Issues -->
+        <div class="dashboard-details-grid">
+            <!-- Strengths -->
+            <div class="result-card" id="strengthsCard">
+                <div class="result-card-header">
+                    <div class="result-card-icon strengths">✅</div>
+                    <div class="result-card-title">Strengths</div>
+                    <div class="result-card-count" id="strengthsCount">0</div>
+                </div>
+                <ul class="result-list" id="strengthsList"></ul>
             </div>
-            <div class="rewrites-list" id="rewritesList"></div>
-        </div>
 
-        <!-- Missing Keywords -->
-        <div class="result-card" id="keywordsCard">
-            <div class="result-card-header">
-                <div class="result-card-icon keywords">🔑</div>
-                <div class="result-card-title">Missing Keywords</div>
-                <div class="result-card-count" id="keywordsCount">0</div>
+            <!-- Improvements -->
+            <div class="result-card" id="improvementsCard">
+                <div class="result-card-header">
+                    <div class="result-card-icon improvements">🔧</div>
+                    <div class="result-card-title">Improvements</div>
+                    <div class="result-card-count" id="improvementsCount">0</div>
+                </div>
+                <ul class="result-list" id="improvementsList"></ul>
             </div>
-            <div class="keyword-chips" id="keywordsList"></div>
-        </div>
 
-        <!-- Strengths -->
-        <div class="result-card" id="strengthsCard">
-            <div class="result-card-header">
-                <div class="result-card-icon strengths">✅</div>
-                <div class="result-card-title">Strengths</div>
-                <div class="result-card-count" id="strengthsCount">0</div>
-            </div>
-            <ul class="result-list" id="strengthsList"></ul>
-        </div>
-
-        <!-- Improvements -->
-        <div class="result-card" id="improvementsCard">
-            <div class="result-card-header">
-                <div class="result-card-icon improvements">🔧</div>
-                <div class="result-card-title">Improvements</div>
-                <div class="result-card-count" id="improvementsCount">0</div>
-            </div>
-            <ul class="result-list" id="improvementsList"></ul>
-        </div>
-
-        <!-- ATS Issues -->
-        <div class="result-card" id="atsCard">
-            <div class="result-card-header">
-                <div class="result-card-icon ats">⚠️</div>
-                <div class="result-card-title">ATS Issues</div>
-                <div class="result-card-count" id="atsCount">0</div>
-            </div>
-            <ul class="result-list" id="atsList"></ul>
-        </div>
-
-        <!-- Updated Resume Card -->
-        <div class="result-card updated-resume-card" id="updatedResumeCard">
-            <div class="result-card-header">
-                <div class="result-card-icon resume-icon">🪄</div>
-                <div class="result-card-title">Your Transformed Resume</div>
-            </div>
-            <p class="updated-resume-desc">We've reimagined your resume with every improvement applied — keywords injected, verbs sharpened, formatting polished. Ready to copy.</p>
-            <div class="resume-actions">
-                <button class="resume-action-btn preview" id="previewResumeBtn">👁️ Preview</button>
-                <button class="resume-action-btn copy-md" id="copyResumeMdBtn">📋 Copy Markdown</button>
-                <button class="resume-action-btn download-md" id="downloadResumeMdBtn">⬇️ Download .md</button>
+            <!-- ATS Issues -->
+            <div class="result-card" id="atsCard">
+                <div class="result-card-header">
+                    <div class="result-card-icon ats">⚠️</div>
+                    <div class="result-card-title">ATS Issues</div>
+                    <div class="result-card-count" id="atsCount">0</div>
+                </div>
+                <ul class="result-list" id="atsList"></ul>
             </div>
         </div>
 
@@ -268,6 +347,24 @@
             <button class="new-analysis-btn" id="newAnalysisBtn">
                 ← Analyze Another Resume
             </button>
+        </div>
+
+        <!-- Micro-Feedback Form -->
+        <div class="feedback-section glass-card" id="feedbackSection" style="margin-top: var(--space-2xl);">
+            <h3 class="feedback-title">Did Sume AI help your resume?</h3>
+            <p class="feedback-subtitle">Let the developer know! It takes 5 seconds.</p>
+            <form id="feedbackForm" class="feedback-form">
+                <input type="text" id="feedbackName" class="feedback-input" placeholder="Your Name" maxlength="100">
+                <textarea id="feedbackMessage" class="feedback-textarea" placeholder="Your thoughts..." maxlength="1000" required></textarea>
+                <button type="submit" class="feedback-submit-btn" id="feedbackSubmitBtn">
+                    <span id="feedbackBtnIcon">✨</span>
+                    <span id="feedbackBtnText">Submit Thoughts</span>
+                </button>
+            </form>
+            <div class="feedback-success" id="feedbackSuccess">
+                <div class="feedback-success-icon">✅</div>
+                <div class="feedback-success-title">Thank you for helping improve Sume AI!</div>
+            </div>
         </div>
     </section>
 
@@ -310,35 +407,62 @@
                 <div class="resume-preview-content" id="resumePreviewContent"></div>
             </div>
             <div class="modal-footer">
-                <button class="modal-btn copy" id="resumeModalCopy">📋 Copy Markdown</button>
-                <button class="modal-btn download" id="resumeModalDownload">⬇️ Download .md</button>
+                <button class="modal-btn download" id="resumeModalDownload">⬇️ Download PDF</button>
             </div>
         </div>
     </div>
 
-    <!-- ── Footer with Feedback ────────────────────────────────────────── -->
+    <!-- ── PDF Export Customization Modal ─────────────────────────────── -->
+    <div class="modal-overlay" id="pdfModal">
+        <div class="modal-content glass-card pdf-custom-modal">
+            <div class="modal-header">
+                <h2 class="modal-title">⬇️ Customize PDF Export</h2>
+                <button class="modal-close" id="pdfModalClose" aria-label="Close">✕</button>
+            </div>
+            <div class="modal-body">
+                <p class="pdf-modal-desc">Enter your details to generate a professionally named, ATS-optimized PDF resume: <code>&lt;Name&gt;-&lt;Role @ Company&gt;.pdf</code></p>
+                <form id="pdfCustomForm" class="pdf-custom-form">
+                    <div class="form-section compact">
+                        <label class="form-label" for="pdfUserName">Full Name</label>
+                        <input type="text" id="pdfUserName" class="pdf-modal-input" placeholder="e.g. Guru Venkata Krishna" required>
+                    </div>
+                    <div class="form-section compact">
+                        <label class="form-label" for="pdfJobRole">Target Job Role</label>
+                        <input type="text" id="pdfJobRole" class="pdf-modal-input" placeholder="e.g. Full Stack AI Engineer" required>
+                    </div>
+                    <div class="form-section compact">
+                        <label class="form-label" for="pdfCompany">Target Company</label>
+                        <input type="text" id="pdfCompany" class="pdf-modal-input" placeholder="e.g. Google" required>
+                    </div>
+                    <button type="submit" class="analyze-btn" id="pdfDownloadSubmitBtn">
+                        <span>⬇️</span> Generate & Download PDF
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+ 
+    <!-- ── Footer with Contact Developer ───────────────────────────────── -->
     <footer class="app-footer">
-        <div class="feedback-section glass-card" id="feedbackSection">
-            <h3 class="feedback-title">💬 Share Your Thoughts</h3>
-            <p class="feedback-subtitle">Your feedback fuels our evolution — help us build something extraordinary.</p>
-            <form id="feedbackForm" class="feedback-form">
-                <input type="text" id="feedbackName" class="feedback-input" placeholder="Your name (optional)" maxlength="100">
-                <textarea id="feedbackMessage" class="feedback-textarea" placeholder="Tell us what you loved, what could be better, or any brilliant ideas you have..." maxlength="1000" required></textarea>
-                <button type="submit" class="feedback-submit-btn" id="feedbackSubmitBtn">
-                    <span id="feedbackBtnIcon">✨</span>
-                    <span id="feedbackBtnText">Send Feedback</span>
+        <div class="contact-dev-section">
+            <h4 class="contact-title">Contact Developer</h4>
+            <p class="contact-subtitle">Have questions or want to collaborate? Connect with the developer.</p>
+            <div class="contact-links">
+                <a href="https://www.linkedin.com/in/guru-venkata-krishna-egiti-46070a303/" target="_blank" class="contact-link-btn linkedin" rel="noopener noreferrer">
+                    <span class="contact-icon">🔗</span> LinkedIn
+                </a>
+                <button type="button" class="contact-link-btn gmail" id="contactGmail">
+                    <span class="contact-icon">📧</span> Copy Gmail
                 </button>
-            </form>
-            <div class="feedback-success" id="feedbackSuccess">
-                <div class="feedback-success-icon">💜</div>
-                <div class="feedback-success-title">Thank You — Your Voice Matters</div>
-                <div class="feedback-success-text">We read every message. Your insight makes Sume AI better for everyone.</div>
             </div>
         </div>
         <p class="footer-text">
             Built with precision by <span class="footer-brand">Sume AI</span> · Your ATS intelligence copilot
         </p>
     </footer>
+
+    <!-- Toast Popup -->
+    <div class="toast-popup" id="toastPopup">Developer's email copied to clipboard!</div>
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════════════════
@@ -386,32 +510,161 @@
     const coverLetterDownload = $('#coverLetterDownload');
     const coverLetterLoading = $('#coverLetterLoading');
 
-    // Bell Reveal DOM
-    const bellReveal = $('#bellReveal');
-    const bellIcon = $('#bellIcon');
-    const analysisCountEl = $('#analysisCount');
+    // Hero Stats DOM
+    const heroBadge = $('#heroBadge');
+    const heroBadgeText = $('#heroBadgeText');
 
     // Updated Resume DOM
     const updatedResumeCard = $('#updatedResumeCard');
     const previewResumeBtn = $('#previewResumeBtn');
-    const copyResumeMdBtn = $('#copyResumeMdBtn');
     const downloadResumeMdBtn = $('#downloadResumeMdBtn');
     const resumeModal = $('#resumeModal');
     const resumeModalClose = $('#resumeModalClose');
     const resumePreviewContent = $('#resumePreviewContent');
-    const resumeModalCopy = $('#resumeModalCopy');
     const resumeModalDownload = $('#resumeModalDownload');
 
+    // PDF Customization Modal DOM
+    const pdfModal = $('#pdfModal');
+    const pdfModalClose = $('#pdfModalClose');
+    const pdfCustomForm = $('#pdfCustomForm');
+ 
     // Feedback DOM
     const feedbackForm = $('#feedbackForm');
     const feedbackSuccess = $('#feedbackSuccess');
     const feedbackSubmitBtn = $('#feedbackSubmitBtn');
 
+    // UI Enhancements DOM
+    const emptyStateGuide = $('#emptyStateGuide');
+    const downloadResultsBtn = $('#downloadResultsBtn');
+    const contactGmail = $('#contactGmail');
+    const toastPopup = $('#toastPopup');
+
     let selectedFile = null;
     let lastJobDescription = "";
     let lastAnalysisId = null;
     let lastUpdatedResumeMd = "";  // Store updated resume MD
-    let pendingResult = null;  // Store result for bell reveal
+    let lastAnalysisResult = null; // Store full result for report download
+
+    // ── Secure Clipboard Fallback ───────────────────────────────────────────
+    async function secureCopyToClipboard(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+            return await navigator.clipboard.writeText(text);
+        } else {
+            // Fallback legacy method
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-999999px";
+            textArea.style.top = "-999999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            return new Promise((resolve, reject) => {
+                if (document.execCommand('copy')) {
+                    resolve();
+                } else {
+                    reject(new Error("Legacy copy command failed"));
+                }
+                document.body.removeChild(textArea);
+            });
+        }
+    }
+
+    // ── Download Results as plain text file ─────────────────────────────────
+    function downloadResultsReport(data) {
+        if (!data) {
+            showError('Download Failed', 'No analysis data available to download.');
+            return;
+        }
+
+        const dateStr = new Date().toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        let report = `======================================================================
+                     SUME AI — ATS RESUME EVALUATION REPORT
+======================================================================
+Generated on: ${dateStr}
+Overall Compatibility Score: ${data.overall_score}/100
+Keyword Match Rate: ${data.section_scores?.skills || 0}%
+
+----------------------------------------------------------------------
+1. METRICS BREAKDOWN
+----------------------------------------------------------------------
+- Skills Alignment:    ${data.section_scores?.skills || 0}/100
+- Work Experience:     ${data.section_scores?.experience || 0}/100
+- Education Match:     ${data.section_scores?.education || 0}/100
+- Formatting & Layout: ${data.section_scores?.formatting || 0}/100
+
+----------------------------------------------------------------------
+2. EXECUTIVE SUMMARY
+----------------------------------------------------------------------
+${data.summary || 'No summary available.'}
+
+----------------------------------------------------------------------
+3. MISSING KEYWORDS
+----------------------------------------------------------------------
+${data.missing_keywords && data.missing_keywords.length > 0
+    ? data.missing_keywords.map(kw => `- ${kw.keyword} (${kw.importance || 'Important keyword'})`).join('\n')
+    : 'No critical missing keywords identified.'}
+
+----------------------------------------------------------------------
+4. RESUME STRENGTHS
+----------------------------------------------------------------------
+${data.strengths && data.strengths.length > 0
+    ? data.strengths.map(s => `✓ ${s}`).join('\n')
+    : 'No notable strengths found.'}
+
+----------------------------------------------------------------------
+5. AREAS FOR IMPROVEMENT
+----------------------------------------------------------------------
+${data.improvements && data.improvements.length > 0
+    ? data.improvements.map(imp => `→ ${imp}`).join('\n')
+    : 'No major improvements suggested.'}
+
+----------------------------------------------------------------------
+6. ATS PARSING CHECKLIST & ISSUES
+----------------------------------------------------------------------
+${data.ats_issues && data.ats_issues.length > 0
+    ? data.ats_issues.map(iss => `! ${iss}`).join('\n')
+    : 'No structural ATS parsing issues found.'}
+
+Parsed Sections:
+${data.ats_parsed_sections && data.ats_parsed_sections.length > 0
+    ? data.ats_parsed_sections.map(sec => `[${sec.status.toUpperCase()}] ${sec.name}: ${sec.detail}`).join('\n')
+    : 'No parsed sections metadata.'}
+
+----------------------------------------------------------------------
+7. RECOMMENDED BULLET POINT REWRITES
+----------------------------------------------------------------------
+${data.rewrites && data.rewrites.length > 0
+    ? data.rewrites.map((rw, i) => `Rewrite #${i+1}:
+   [ORIGINAL]  ${rw.original}
+   [REWRITTEN] ${rw.rewritten}
+   [WHY]       ${rw.why}`).join('\n\n')
+    : 'No bullet point rewrites recommended.'}
+
+======================================================================
+                   Thank you for using Sume AI!
+======================================================================
+`;
+
+        const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        
+        const role = $('#pdfJobRole')?.value || 'ATS-Report';
+        a.download = `Sume-AI-Analysis-${role.replace(/\\s+/g, '-') || 'Report'}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
 
     // ── Particle Background ─────────────────────────────────────────────────
     function initParticles() {
@@ -433,8 +686,8 @@
                 this.size = Math.random() * 2 + 0.5;
                 this.speedX = (Math.random() - 0.5) * 0.3;
                 this.speedY = (Math.random() - 0.5) * 0.3;
-                this.opacity = Math.random() * 0.3 + 0.05;
-                this.hue = Math.random() > 0.7 ? 187 : 38;
+                this.opacity = Math.random() * 0.15 + 0.05;
+                this.hue = Math.random() > 0.7 ? 28 : 36;
             }
             update() {
                 this.x += this.speedX;
@@ -444,7 +697,7 @@
             draw() {
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fillStyle = `hsla(${this.hue}, 80%, 65%, ${this.opacity})`;
+                ctx.fillStyle = `hsla(${this.hue}, 40%, 35%, ${this.opacity})`;
                 ctx.fill();
             }
         }
@@ -482,10 +735,12 @@
         
         if (!isPdf && !isDocx) { 
             showError('Invalid File', 'Please upload a PDF or DOCX file.'); 
+            removeFile();
             return; 
         }
         if (file.size > 5 * 1024 * 1024) { 
             showError('File Too Large', 'Maximum file size is 5 MB.'); 
+            removeFile();
             return; 
         }
         selectedFile = file;
@@ -542,6 +797,13 @@
 
     function startLoading() {
         uploadCard.style.display = 'none';
+        if (emptyStateGuide) emptyStateGuide.style.display = 'none';
+        
+        // Reset queue layout states
+        loadingState.classList.remove('queue-active');
+        const loadingTextEl = $('#loadingState .loading-text');
+        if (loadingTextEl) loadingTextEl.textContent = "Analyzing your resume...";
+
         loadingState.classList.add('visible');
         resultsSection.classList.remove('visible');
         let msgIndex = 0;
@@ -551,6 +813,40 @@
             loadingSubtext.style.opacity = 0;
             setTimeout(() => { loadingSubtext.textContent = loadingMessages[msgIndex]; loadingSubtext.style.opacity = 1; }, 200);
         }, 2500);
+    }
+
+    function showHighDemandQueue(retryCallback) {
+        // Switch loading state to queue layout
+        loadingState.classList.add('queue-active');
+        
+        const loadingTextEl = $('#loadingState .loading-text');
+        const loadingSubtextEl = $('#loadingSubtext');
+        
+        if (loadingTextEl) loadingTextEl.textContent = "Entering priority queue...";
+        if (loadingSubtextEl) {
+            loadingSubtextEl.textContent = "Sume AI is experiencing extremely high demand right now. You are in the priority queue. Your resume will be processed shortly.";
+        }
+        
+        // Wait exactly 15 seconds and re-trigger automatically
+        setTimeout(async () => {
+            try {
+                // Restore loading texts to standard before retry
+                if (loadingTextEl) loadingTextEl.textContent = "Analyzing your resume...";
+                if (loadingSubtextEl) loadingSubtextEl.textContent = "Scanning keywords and formatting";
+                loadingState.classList.remove('queue-active');
+                
+                await retryCallback();
+            } catch (error) {
+                stopLoading();
+                uploadCard.style.display = 'block';
+                if (emptyStateGuide) emptyStateGuide.style.display = 'block';
+                showError('Analysis Failed', error.message || 'An unexpected error occurred. Please try again.');
+                analyzeBtn.disabled = false;
+                analyzeBtn.classList.remove('loading');
+                btnIcon.textContent = '⚡';
+                btnText.textContent = 'Analyze My Resume';
+            }
+        }, 15000);
     }
 
     function stopLoading() {
@@ -586,10 +882,42 @@
         else scoreNumber.style.color = 'var(--accent-danger)';
     }
 
+    // ── Keyword Score Gauge Animation ────────────────────────────────────────
+    function animateKeywordScore(score) {
+        const circumference = 2 * Math.PI * 70;
+        const offset = circumference - (score / 100) * circumference;
+        const ring = $('#keywordRingFill');
+        if (!ring) return;
+
+        ring.style.strokeDasharray = circumference;
+        ring.style.strokeDashoffset = circumference;
+
+        const scoreClass = score >= 75 ? 'score-high' : score >= 50 ? 'score-mid' : 'score-low';
+        ring.setAttribute('class', 'score-ring-fill ' + scoreClass);
+
+        requestAnimationFrame(() => { requestAnimationFrame(() => { ring.style.strokeDashoffset = offset; }); });
+
+        const scoreNumber = $('#keywordScoreNumber');
+        if (!scoreNumber) return;
+        let current = 0;
+        const step = Math.ceil(score / 60) || 1;
+        const counter = setInterval(() => {
+            current += step;
+            if (current >= score) { current = score; clearInterval(counter); }
+            scoreNumber.textContent = current;
+        }, 25);
+
+        if (score >= 75) scoreNumber.style.color = 'var(--accent-success)';
+        else if (score >= 50) scoreNumber.style.color = 'var(--accent-warm)';
+        else scoreNumber.style.color = 'var(--accent-danger)';
+    }
+
     // ── Render Results ──────────────────────────────────────────────────────
     function renderResults(data) {
         stopLoading();
+        lastAnalysisResult = data; // Cache result for report download
         animateScore(data.overall_score);
+        animateKeywordScore(data.section_scores?.skills || 0);
         $('#scoreSummary').textContent = data.summary || '';
 
         // Section Scores
@@ -673,12 +1001,24 @@
                         <div class="rewrite-improved">
                             <div class="rewrite-label">Improved <span class="rewrite-icon">✅</span></div>
                             <div class="rewrite-text" id="rewrite-text-${i}">${escapeHtml(rw.rewritten)}</div>
-                            <button class="rewrite-copy-btn" onclick="navigator.clipboard.writeText(document.getElementById('rewrite-text-${i}').textContent); this.innerHTML='Copied! ✓'; setTimeout(() => this.innerHTML='Copy', 2000)">Copy</button>
+                            <button class="rewrite-copy-btn" id="rewrite-copy-${i}">Copy</button>
                         </div>
                     </div>
                     <div class="rewrite-why">💡 <strong>Why:</strong> ${escapeHtml(rw.why)}</div>
                 `;
                 rewritesList.appendChild(card);
+
+                const copyBtn = card.querySelector(`#rewrite-copy-${i}`);
+                if (copyBtn) {
+                    copyBtn.addEventListener('click', () => {
+                        secureCopyToClipboard(rw.rewritten).then(() => {
+                            copyBtn.innerHTML = 'Copied! ✓';
+                            setTimeout(() => copyBtn.innerHTML = 'Copy', 2000);
+                        }).catch(() => {
+                            showError('Copy Failed', 'Could not copy rewrite.');
+                        });
+                    });
+                }
             });
         }
 
@@ -741,29 +1081,43 @@
         btnText.textContent = 'Analyzing...';
         startLoading();
 
-        try {
-            const formData = new FormData();
-            formData.append('resume', selectedFile);
-            formData.append('job_description', jd);
+        const formData = new FormData();
+        formData.append('resume', selectedFile);
+        formData.append('job_description', jd);
+
+        async function performAnalysis() {
             const response = await fetch('/analyze-resume', { method: 'POST', body: formData });
 
-            if (response.status === 429) {
-                throw new Error('Rate limit exceeded. Please wait a while before trying again.');
-            }
             if (!response.ok) {
                 const err = await response.json().catch(() => ({}));
-                throw new Error(err.detail || `Server error (${response.status})`);
+                const isSystemOverload = response.status === 429 && 
+                    (err.error_type === "SYSTEM_OVERLOAD" || (err.detail && err.detail.error_type === "SYSTEM_OVERLOAD") || err.status === "error");
+                
+                if (isSystemOverload) {
+                    showHighDemandQueue(performAnalysis);
+                    return;
+                }
+                
+                throw new Error(err.detail?.message || err.detail || err.message || `Server error (${response.status})`);
             }
 
             const result = await response.json();
-            pendingResult = result;  // Store for bell reveal
             stopLoading();
-            showBellReveal();
+            renderResults(result);
+            
+            analyzeBtn.disabled = false;
+            analyzeBtn.classList.remove('loading');
+            btnIcon.textContent = '⚡';
+            btnText.textContent = 'Analyze My Resume';
+        }
+
+        try {
+            await performAnalysis();
         } catch (error) {
             stopLoading();
             uploadCard.style.display = 'block';
+            if (emptyStateGuide) emptyStateGuide.style.display = 'block';
             showError('Analysis Failed', error.message || 'An unexpected error occurred. Please try again.');
-        } finally {
             analyzeBtn.disabled = false;
             analyzeBtn.classList.remove('loading');
             btnIcon.textContent = '⚡';
@@ -775,12 +1129,44 @@
     newAnalysisBtn.addEventListener('click', () => {
         resultsSection.classList.remove('visible');
         uploadCard.style.display = 'block';
+        if (emptyStateGuide) emptyStateGuide.style.display = 'block';
         removeFile();
         jobDesc.value = '';
         charCount.textContent = '0 / 5,000';
         charCount.className = 'char-count';
+
+        // Reset feedback form
+        feedbackForm.style.display = 'flex';
+        feedbackSuccess.classList.remove('visible');
+        feedbackForm.reset();
+        feedbackSubmitBtn.disabled = false;
+        $('#feedbackBtnText').textContent = 'Submit Thoughts';
+        $('#feedbackBtnIcon').textContent = '✨';
+
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
+
+    // ── Download Results Report ──────────────────────────────────────────────
+    if (downloadResultsBtn) {
+        downloadResultsBtn.addEventListener('click', () => {
+            downloadResultsReport(lastAnalysisResult);
+        });
+    }
+
+    // ── Contact Developer Gmail Clipboard Copy & Toast ───────────────────────
+    if (contactGmail && toastPopup) {
+        contactGmail.addEventListener('click', () => {
+            const email = 'yegitigvkrishna@gmail.com';
+            secureCopyToClipboard(email).then(() => {
+                toastPopup.classList.add('visible');
+                setTimeout(() => {
+                    toastPopup.classList.remove('visible');
+                }, 2500);
+            }).catch(() => {
+                showError('Copy Failed', 'Could not copy email address.');
+            });
+        });
+    }
 
     // ── Cover Letter ────────────────────────────────────────────────────────
     coverLetterBtn.addEventListener('click', async () => {
@@ -832,7 +1218,7 @@
     coverLetterCopy.addEventListener('click', async () => {
         const text = coverLetterText.innerText;
         try {
-            await navigator.clipboard.writeText(text);
+            await secureCopyToClipboard(text);
             const originalText = coverLetterCopy.innerHTML;
             coverLetterCopy.innerHTML = '✓ Copied!';
             setTimeout(() => coverLetterCopy.innerHTML = originalText, 2000);
@@ -854,12 +1240,7 @@
         URL.revokeObjectURL(url);
     });
 
-    // ── Bell Reveal ────────────────────────────────────────────────────────
-    function showBellReveal() {
-        bellReveal.classList.add('visible');
-        fetchAndAnimateCounter();
-    }
-
+    // ── Global Stats Counter ────────────────────────────────────────────────
     function fetchAndAnimateCounter() {
         fetch('/analytics/user-count')
             .then(r => r.json())
@@ -867,86 +1248,242 @@
                 const target = data.count || 1000;
                 animateCounter(target);
             })
-            .catch(() => animateCounter(1000));
+            .catch(() => {
+                if (heroBadgeText) heroBadgeText.textContent = 'ATS Intelligence Engine';
+            });
     }
 
     function animateCounter(target) {
+        if (!heroBadgeText) return;
         let current = 0;
         const step = Math.max(1, Math.floor(target / 80));
         const interval = setInterval(() => {
             current += step;
             if (current >= target) { current = target; clearInterval(interval); }
-            analysisCountEl.textContent = current.toLocaleString();
+            heroBadgeText.textContent = `ATS Engine · ${current.toLocaleString()} scans`;
         }, 20);
     }
 
-    bellIcon.addEventListener('click', () => {
-        bellIcon.classList.add('bell-ringing');
-        setTimeout(() => {
-            bellReveal.classList.add('fade-out');
-            setTimeout(() => {
-                bellReveal.classList.remove('visible', 'fade-out');
-                bellIcon.classList.remove('bell-ringing');
-                if (pendingResult) {
-                    renderResults(pendingResult);
-                    pendingResult = null;
-                }
-            }, 500);
-        }, 800);
-    });
+    // ── Updated Resume Modal & Parser ───────────────────────────────────────
+    function markdownToHtml(md) {
+        if (!md) return '';
+        const lines = md.replace(/\r\n/g, '\n').split('\n');
+        let html = [];
+        let inList = false;
+        let listType = null;
+        let inCodeBlock = false;
+        let codeContent = [];
 
-    // ── Updated Resume Modal ────────────────────────────────────────────────
-    function simpleMarkdownToHtml(md) {
-        return md
-            .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-            .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-            .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*(.+?)\*/g, '<em>$1</em>')
-            .replace(/^- (.+)$/gm, '<li>$1</li>')
-            .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
-            .replace(/\n\n/g, '<br><br>')
-            .replace(/\n/g, '<br>');
+        function closeList() {
+            if (inList) {
+                html.push(`</${listType}>`);
+                inList = false;
+                listType = null;
+            }
+        }
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            const trimmed = line.trim();
+
+            if (trimmed.startsWith('```')) {
+                closeList();
+                if (inCodeBlock) {
+                    html.push(`<pre><code>${codeContent.join('\n')}</code></pre>`);
+                    codeContent = [];
+                    inCodeBlock = false;
+                } else {
+                    inCodeBlock = true;
+                }
+                continue;
+            }
+
+            if (inCodeBlock) {
+                codeContent.push(line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'));
+                continue;
+            }
+
+            const headingMatch = trimmed.match(/^(#{1,6})\s+(.+)$/);
+            if (headingMatch) {
+                closeList();
+                const level = headingMatch[1].length;
+                html.push(`<h${level}>${parseInline(headingMatch[2])}</h${level}>`);
+                continue;
+            }
+
+            if (trimmed === '---' || trimmed === '***' || trimmed === '___') {
+                closeList();
+                html.push('<hr>');
+                continue;
+            }
+
+            const ulMatch = trimmed.match(/^[-*+]\s+(.+)$/);
+            if (ulMatch) {
+                if (!inList || listType !== 'ul') {
+                    closeList();
+                    html.push('<ul>');
+                    inList = true;
+                    listType = 'ul';
+                }
+                html.push(`<li>${parseInline(ulMatch[1])}</li>`);
+                continue;
+            }
+
+            const olMatch = trimmed.match(/^(\d+)\.\s+(.+)$/);
+            if (olMatch) {
+                if (!inList || listType !== 'ol') {
+                    closeList();
+                    html.push('<ol>');
+                    inList = true;
+                    listType = 'ol';
+                }
+                html.push(`<li>${parseInline(olMatch[2])}</li>`);
+                continue;
+            }
+
+            const quoteMatch = trimmed.match(/^>\s*(.+)$/);
+            if (quoteMatch) {
+                closeList();
+                html.push(`<blockquote>${parseInline(quoteMatch[1])}</blockquote>`);
+                continue;
+            }
+
+            if (trimmed === '') {
+                closeList();
+                continue;
+            }
+
+            closeList();
+            html.push(`<p>${parseInline(trimmed)}</p>`);
+        }
+
+        closeList();
+        if (inCodeBlock && codeContent.length > 0) {
+            html.push(`<pre><code>${codeContent.join('\n')}</code></pre>`);
+        }
+        return html.join('\n');
+
+        function parseInline(text) {
+            if (!text) return '';
+            let escaped = text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+            
+            escaped = escaped
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+                
+            return escaped;
+        }
     }
 
     previewResumeBtn.addEventListener('click', () => {
-        resumePreviewContent.innerHTML = simpleMarkdownToHtml(escapeHtml(lastUpdatedResumeMd));
+        resumePreviewContent.innerHTML = markdownToHtml(lastUpdatedResumeMd);
         resumeModal.classList.add('visible');
     });
 
     resumeModalClose.addEventListener('click', () => resumeModal.classList.remove('visible'));
     resumeModal.addEventListener('click', (e) => { if (e.target === resumeModal) resumeModal.classList.remove('visible'); });
 
-    function copyResumeMd(e) {
-        const btn = e ? e.target.closest('button') : null;
-        navigator.clipboard.writeText(lastUpdatedResumeMd).then(() => {
-            if (btn) {
-                const orig = btn.innerHTML;
-                btn.innerHTML = '✓ Copied!';
-                setTimeout(() => btn.innerHTML = orig, 2000);
-            }
-        }).catch((err) => {
-            console.error(err);
-            showError('Copy Failed', 'Could not copy to clipboard. Ensure you are on a secure connection.');
+    function openPdfCustomizer() {
+        pdfModal.classList.add('visible');
+    }
+
+    pdfModalClose.addEventListener('click', () => pdfModal.classList.remove('visible'));
+    pdfModal.addEventListener('click', (e) => { if (e.target === pdfModal) pdfModal.classList.remove('visible'); });
+
+    pdfCustomForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = $('#pdfUserName').value.trim();
+        const role = $('#pdfJobRole').value.trim();
+        const company = $('#pdfCompany').value.trim();
+        
+        if (!name || !role || !company) return;
+        
+        pdfModal.classList.remove('visible');
+        downloadResumeAsPdf(name, role, company);
+    });
+
+    function downloadResumeAsPdf(userName, jobRole, companyName) {
+        // Create dynamic offscreen element for PDF rendering
+        const printElement = document.createElement('div');
+        printElement.className = 'pdf-print-sheet';
+        printElement.innerHTML = markdownToHtml(lastUpdatedResumeMd);
+        document.body.appendChild(printElement);
+
+        // Sanitize strings for file name
+        const cleanName = userName.replace(/[^a-zA-Z0-9\s]/g, '').trim().replace(/\s+/g, '_');
+        const cleanRole = jobRole.replace(/[^a-zA-Z0-9\s]/g, '').trim().replace(/\s+/g, '_');
+        const cleanCompany = companyName.replace(/[^a-zA-Z0-9\s]/g, '').trim().replace(/\s+/g, '_');
+        const filename = `${cleanName}-${cleanRole}_at_${cleanCompany}.pdf`;
+
+        const opt = {
+            margin:       1.0,
+            filename:     filename,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2.5, useCORS: true, letterRendering: true, scrollY: 0, scrollX: 0 },
+            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
+            pagebreak:    { mode: ['avoid-all', 'css'] }
+        };
+
+        // Render PDF using html2pdf.js library
+        html2pdf().set(opt).from(printElement).save().then(() => {
+            document.body.removeChild(printElement);
+        }).catch(err => {
+            console.error('PDF generation failed:', err);
+            showError('PDF Export Failed', 'An error occurred during PDF compiling.');
+            document.body.removeChild(printElement);
         });
     }
 
-    function downloadResumeMd() {
-        const blob = new Blob([lastUpdatedResumeMd], { type: 'text/markdown;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `updated_resume_${selectedFile ? selectedFile.name.split('.')[0] : 'sume'}.md`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }
+    downloadResumeMdBtn.addEventListener('click', openPdfCustomizer);
+    resumeModalDownload.addEventListener('click', openPdfCustomizer);
 
-    copyResumeMdBtn.addEventListener('click', copyResumeMd);
-    downloadResumeMdBtn.addEventListener('click', downloadResumeMd);
-    resumeModalCopy.addEventListener('click', copyResumeMd);
-    resumeModalDownload.addEventListener('click', downloadResumeMd);
+    const typingSentences = [
+        "Beat 2026 ATS Screeners",
+        "Inject Keywords Instantly",
+        "Simulate Recruiter Scanners",
+        "Transform Bullets to Metrics",
+        "Ensure Single Page Layouts",
+        "Generate Tailored Cover Letters",
+        "Verify Magic File Bytes",
+        "Get Actionable AI Suggestions",
+        "Enjoy Complete Data Privacy",
+        "Export Recruiter Ready PDFs"
+    ];
+    let sentenceIndex = 0;
+    let charIndex = 0;
+    let isDeleting = false;
+    const typingElement = $('#typingElement');
+    
+    function type() {
+        if (!typingElement) return;
+        const currentSentence = typingSentences[sentenceIndex];
+        if (isDeleting) {
+            typingElement.textContent = currentSentence.substring(0, charIndex - 1);
+            charIndex--;
+        } else {
+            typingElement.textContent = currentSentence.substring(0, charIndex + 1);
+            charIndex++;
+        }
+        
+        let typeSpeed = isDeleting ? 25 : 50;
+        
+        if (!isDeleting && charIndex === currentSentence.length) {
+            typeSpeed = 2500; // Pause at end of sentence
+            isDeleting = true;
+        } else if (isDeleting && charIndex === 0) {
+            isDeleting = false;
+            sentenceIndex = (sentenceIndex + 1) % typingSentences.length;
+            typeSpeed = 400;
+        }
+        
+        setTimeout(type, typeSpeed);
+    }
+    type();
 
     // ── Feedback Form ────────────────────────────────────────────────────
     feedbackForm.addEventListener('submit', async (e) => {
@@ -969,7 +1506,7 @@
         } catch (err) {
             showError('Feedback Failed', 'Could not send. Please try again later.');
             feedbackSubmitBtn.disabled = false;
-            $('#feedbackBtnText').textContent = 'Send Feedback';
+            $('#feedbackBtnText').textContent = 'Submit Thoughts';
             $('#feedbackBtnIcon').textContent = '✨';
         }
     });
@@ -1005,6 +1542,7 @@
 
     // ── Initialize ──────────────────────────────────────────────────────────
     initParticles();
+    fetchAndAnimateCounter();
 
 })();
 </script>

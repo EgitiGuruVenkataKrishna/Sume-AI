@@ -3,7 +3,7 @@
  * Caches the app shell for offline launch and uses network-first for API calls.
  */
 
-const CACHE_VERSION = 'sume-ai-v2';
+const CACHE_VERSION = 'sume-ai-v12';
 const APP_SHELL = [
     '/',
     '/static/styles.css',
