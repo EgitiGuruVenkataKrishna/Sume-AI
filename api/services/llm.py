@@ -78,8 +78,8 @@ async def analyze_resume_llm(resume_text: str, job_description: str) -> Dict[str
     system_prompt = build_analysis_system_prompt()
     user_prompt = build_analysis_user_prompt(resume_text, job_description)
     
-    # We choose llama-3.1-70b-versatile for higher reliability and higher limits on Groq.
-    model_name = os.getenv("GROQ_MODEL", "llama-3.1-70b-versatile")
+    # We choose llama-3.3-70b-versatile for higher reliability and higher limits on Groq.
+    model_name = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
     
     call_kwargs = {
         "model": model_name,
@@ -125,7 +125,7 @@ async def generate_cover_letter_llm(resume_text: str, job_description: str) -> s
     
     # Text generation uses temperature 0.6 for custom variance
     call_kwargs = {
-        "model": os.getenv("GROQ_MODEL", "llama-3.1-70b-versatile"),
+        "model": os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
