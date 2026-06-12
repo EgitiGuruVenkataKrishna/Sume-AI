@@ -49,26 +49,7 @@
     <link rel="stylesheet" href="/static/styles.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
 </head>
-<body style="overflow: hidden;">
-
-<!-- Premium Splash Screen -->
-<div id="sume-splash-screen" class="sume-splash-screen">
-    <div class="splash-content">
-        <div class="splash-logo-container">
-            <svg class="splash-logo-ring" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="40" stroke-dasharray="180 60" />
-            </svg>
-            <svg class="splash-logo-core" viewBox="0 0 100 100">
-                <polygon points="50,15 90,80 10,80" />
-            </svg>
-        </div>
-        <h1 class="splash-title"><span class="splash-accent">Sume</span> AI</h1>
-        <div class="splash-subtitle">ATS Intelligence Engine</div>
-        <div class="splash-progress-track">
-            <div class="splash-progress-bar"></div>
-        </div>
-    </div>
-</div>
+<body>
 
 <!-- Live Wallpaper Background Blobs -->
 <div class="bg-blob blob-1"></div>
@@ -1563,16 +1544,7 @@ ${data.rewrites && data.rewrites.length > 0
     initParticles();
     fetchAndAnimateCounter();
 
-    // Unmount Splash Screen precisely when the fadeout animation ends
-    const sumeSplash = document.getElementById('sume-splash-screen');
-    if (sumeSplash) {
-        sumeSplash.addEventListener('animationend', (e) => {
-            if (e.animationName === 'sumeSplashFadeOut') {
-                sumeSplash.remove();
-                document.body.style.overflow = '';
-            }
-        });
-    }
+
 
 })();
 </script>
